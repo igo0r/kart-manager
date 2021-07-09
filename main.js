@@ -226,16 +226,23 @@ function reset() {
 
 //2g || Ingul
 function initStorage(track) {
-    window.storage = getFromLocalStorage() ?? {
-        teams: {},
-        rating: {},
-        pitlane: fillInPitlaneWithUnknown(),
-        chance: [],
-        classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
-        settings: {rows: 2, count: 3}
-    };
+    let fromLocalStorage = getFromLocalStorage();
+    if(fromLocalStorage) {
+        window.storage = fromLocalStorage;
+        initSettings();
+    } else {
+        window.storage = {
+            teams: {},
+            rating: {},
+            chance: [],
+            classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
+            settings: {rows: 2, count: 3}
+        };
+        initSettings();
+        window.storage.pitlane = fillInPitlaneWithUnknown();
+    }
+
     window.storage.track = track;
-    initSettings();
     recalculateRating();
     recalculateChance();
 }
