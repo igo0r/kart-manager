@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "jest",
-    "parse": "node index.js"
+    "parse": "node index.js",
+    "start": "http-server"
   },
   "babel": {
     "presets": [
