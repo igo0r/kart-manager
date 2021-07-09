@@ -7,7 +7,7 @@
   "scripts": {
     "test": "jest",
     "parse": "node index.js",
-    "start": "http-server"
+    "start": "./node_modules/http-server/bin/http-server"
   },
   "babel": {
     "presets": [
@@ -28,6 +28,7 @@
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
     "@babel/register": "^7.5.5",
+    "http-server": "^0.12.3",
     "websocket": "^1.0.34",
     "ws": "^7.5.0"
   },
