@@ -1,6 +1,19 @@
-initStorage('2g');
+initStorage('apex');
 
-let webSocket = new WebSocket(storage.track === 'Ingul' ? 'wss://webserver10.sms-timing.com:10015/' : 'wss://webserver8.sms-timing.com:10015/');
+let url = '';
+switch (storage.track) {
+    case 'Ingul':
+        url = 'wss://webserver10.sms-timing.com:10015/';
+        break;
+    case '2g':
+        url = 'wss://webserver8.sms-timing.com:10015/';
+        break;
+    case 'apex':
+        //url = 'wss://www.apex-timing.com:8072/';
+        url = 'ws://www.apex-timing.com:7822/'
+
+}
+let webSocket = new WebSocket(url);
 
 webSocket.onopen = function (event) {
     let message = getInitMessage();
@@ -19,7 +32,126 @@ webSocket.onclose = function (error) {
 }
 
 webSocket.onmessage = function (event) {
-    parseData(JSON.parse(event.data))
+    if(storage.track === 'apex') {
+        parseApexData(event.data)
+    } else {
+        parseData(JSON.parse(event.data))
+    }
+}
+
+/*
+ We need to compose data for parseData from init|r| into
+ {
+
+ }
+ */
+function parseApexData(data) {
+    console.log(data);
+    console.log(storage);
+    let items = data.split('\n');
+    if(data.includes('init|')) {
+        let grid = items.filter(item => item.includes('grid|'));
+        let gridItems = grid[0].split('|');
+        document.getElementById('apex-results').innerHTML = gridItems[2];
+        let racers = document.querySelectorAll('tr:not(.head)');
+        racers.forEach(racer => {
+            let driverCellNumber = document.querySelector("td[data-type='dr']").getAttribute('data-id');
+            let lastLapCellNumber = document.querySelector("td[data-type='llp']").getAttribute('data-id');
+            let kartCellNumber = document.querySelector("td[data-type='no']").getAttribute('data-id');
+            let rkCellNumber = document.querySelector("td[data-type='rk']").getAttribute('data-id');
+
+            let dataId = racer.getAttribute('data-id');
+            let isPit = racer.querySelector(`td[data-id="${dataId}c2"]`).getAttribute('class');
+            let teamName = racer.querySelector(`td[data-id="${dataId}${driverCellNumber}"]`).textContent;
+            let kart = racer.querySelector(`div[data-id="${dataId}${kartCellNumber}"]`).textContent;
+            let position = racer.querySelector(`p[data-id="${dataId}${rkCellNumber}"]`).textContent;
+            let lapTime = convertToMiliSeconds(racer.querySelector(`td[data-id="${dataId}${lastLapCellNumber}"]`).textContent);
+            this.addTeamIfNotExists(teamName);
+            this.addLapsForTeamIfNotExists(teamName);
+            //pitstop
+            if(isPit && isPit == 'si') {
+                console.log(`${teamName} is in PIT!!!!`);
+                !storage.teams[teamName]['pitstop'] ? pitStop(teamName) : '';
+                storage.teams[teamName]['pitstop'] = true;
+                console.log(`Set empty laps for ${teamName}`);
+                storage.teams[teamName].laps = [];
+                recalculateRating();
+                return;
+            }
+            if(lapTime === '' || (storage.teams[teamName]['last_lap_time'] && storage.teams[teamName]['last_lap_time'] === lapTime)) {
+                return;
+            }
+            console.log(`${teamName} has new lap with time: ${lapTime}`);
+            storage.teams[teamName]['id'] = dataId;
+            storage.teams[teamName]['kart'] = kart;
+            storage.teams[teamName]['last_lap_time'] = lapTime;
+            storage.teams[teamName]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
+            storage.teams[teamName]['pitstop'] = false;
+            storage.teams[teamName]['stint'] = false ? 1 : 0;
+            storage.teams[teamName].laps.push({
+                "lap_time": lapTime,
+                "converted_lap_time": lapTime,
+                kart,
+                position
+            });
+            recalculateRating();
+        });
+    } else {
+        items.forEach(item => {
+            let splitted = item.split('|');
+            if(splitted.length < 3) {
+                return;
+            }
+
+            let lastLapCellNumber = document.querySelector("td[data-type='llp']").getAttribute('data-id');
+
+           /* if (document.querySelector(`[data-id="${splitted[0]}"]`)) {
+                document.querySelector(`[data-id="${splitted[0]}"]`).innerHTML = splitted[2];
+                document.querySelector(`[data-id="${splitted[0]}"]`).setAttribute('class', splitted[1]);
+            }*/
+            let teamId = (splitted[0].split('c'))[0];
+            if(item.includes('c2|si|')) {
+                for (let name in storage.teams) {
+                    if(storage.teams[name].id == teamId) {
+                        console.log(`Check if ${name} is in PIT?????`);
+                        if(storage.teams[name]['pitstop']) {
+                            return;
+                        }
+                        console.log(`${name} is in PIT!!!!`);
+                        pitStop(name);
+                        storage.teams[name]['pitstop'] = true;
+                        console.log(`Set empty laps for ${name}`);
+                        storage.teams[name].laps = [];
+                        recalculateRating();
+                    }
+                }
+                return;
+            }
+            //new lap for team
+            if(item.includes(lastLapCellNumber + '|')) {
+                //bad lap
+                if(splitted[2].length <= 1) {
+                    return;
+                }
+                //Format = r183c11|ib|1:01.707
+                for (let name in storage.teams) {
+                    if(storage.teams[name].id == teamId) {
+                        let lapTime = this.convertToMiliSeconds(splitted[2]);
+                        console.log(`${name} has new lap with time: ${lapTime}`);
+                        storage.teams[name]['last_lap_time'] = lapTime;
+                        storage.teams[name]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
+                        storage.teams[name]['pitstop'] = false;
+                        storage.teams[name]['stint'] = false ? 1 : 0;
+                        storage.teams[name].laps.push({
+                            "lap_time": lapTime,
+                            "converted_lap_time": lapTime
+                        });
+                        recalculateRating();
+                    }
+                }
+            }
+        })
+    }
 }
 
 function parseData(data) {
@@ -32,14 +164,8 @@ function parseData(data) {
     }
     data[adapter.data].forEach(item => {
         //Check racer/team exists
-        if (!storage.teams[item[adapter.teamName]] || storage.teams[item[adapter.teamName]] === undefined) {
-            storage.teams[item[adapter.teamName]] = {}
-        }
-        //Check racer/team has some laps
-        if (!storage.teams[item[adapter.teamName]].laps || storage.teams[item[adapter.teamName]].laps === undefined) {
-            storage.teams[item[adapter.teamName]].laps = [];
-            storage.teams[item[adapter.teamName]]['last_lap'] = 0
-        }
+        this.addTeamIfNotExists(item[adapter.teamName]);
+        this.addLapsForTeamIfNotExists(item[adapter.teamName]);
 
         let team = storage.teams[item[adapter.teamName]];
         //Pitstop
@@ -81,6 +207,53 @@ function parseData(data) {
     }
 }
 
+function convertToMiliSeconds(time) {
+    if(time.length < 2) {
+        return time;
+    }
+    let convertedTime = 0;
+    //Get milisec
+    let splittedMilisec = time.split('.');
+    //Get minutes and seconds
+    let milliseconds = 0;
+    if(splittedMilisec.length > 1) {
+        milliseconds = parseInt(splittedMilisec[1]);
+    }
+    let splittedHM = splittedMilisec[0].split(':');
+    if(splittedHM.length > 1) {
+        convertedTime = parseInt(splittedHM[0]) * 60 * 1000 + parseInt(splittedHM[1]) * 1000 + milliseconds;
+    } else {
+        convertedTime = parseInt(splittedHM[1]) * 1000 + milliseconds;
+    }
+
+    return convertedTime;
+}
+
+function convertToMinutes(time) {
+    time = parseInt(time);
+    if(parseInt(time) < 1) {
+        return time;
+    }
+    let seconds = parseInt(((time%60000)/1000));
+    let minutes = parseInt(time/60000);
+    let millisec = (time/1000).toString().split('.')[1] ?? '000';
+
+    return `${minutes}:${parseInt(seconds) < 10 ? '0' + seconds : seconds}:${millisec}`;
+}
+
+function addLapsForTeamIfNotExists(teamName) {
+    //Check racer/team has some laps
+    if (!storage.teams[teamName].laps || storage.teams[teamName].laps === undefined) {
+        storage.teams[teamName].laps = [];
+        storage.teams[teamName]['last_lap'] = 0
+    }
+}
+
+function addTeamIfNotExists(teamName) {
+    if (!storage.teams[teamName] || storage.teams[teamName] === undefined) {
+        storage.teams[teamName] = {}
+    }
+}
 function recalculateRating() {
     for (let name in storage.teams) {
         storage.rating[name] = defineTeamRating(storage.teams[name]);
@@ -152,8 +325,8 @@ function drawRating() {
     for (let name in storage.rating) {
         data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} ${name} <br />
 ${storage.rating[name].rating}  <br />
-Best - ${storage.rating[name].best}<br />
-Avg - ${storage.rating[name].avg}<br />
+Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
+Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
 Stint - ${storage.rating[name].stint} </div>`;
     }
 
@@ -164,7 +337,7 @@ function drawLaps() {
     let data = '';
     for (let name in storage.teams) {
         data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} - ${name}<br />
-${storage.teams[name].laps.map(lap => lap['lap_time']).join('<br/>')}</div>`;
+${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
     }
 
     document.getElementById('laps').innerHTML = data;
@@ -188,7 +361,7 @@ function drawChance() {
 function drawPitlane() {
     let data = '';
     storage.pitlane.forEach(lane => {
-        data += `<div class="w-5 col border border-3 ${getBgColor(lane.rating)}">${lane.rating} Best ${lane.best}, Avg ${lane.avg}</div><br />`;
+        data += `<div class="w-5 col border border-3 ${getBgColor(lane.rating)}">${lane.rating} Best ${this.convertToMinutes(lane.best)}, Avg ${this.convertToMinutes(lane.avg)}</div><br />`;
     });
 
     document.getElementById('pitlane').innerHTML = data;
@@ -236,7 +409,7 @@ function initStorage(track) {
             rating: {},
             chance: [],
             classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
-            settings: {rows: 2, count: 3}
+            settings: {rows: 3, count: 3}
         };
         initSettings();
         window.storage.pitlane = fillInPitlaneWithUnknown();
@@ -332,7 +505,18 @@ function composeChance(pitlane) {
 
 
 function getInitMessage() {
-    return storage.track && storage.track === 'Ingul' ? 'START 13143@ingulkart' : "{\"$type\":\"BcStart\",\"ClientKey\":\"2gcircuit\",\"ResourceId\":19495,\"Timing\":true,\"Notifications\":true,\"Security\":\"THIRD PARTY TV\"}";
+    if(!storage || !storage.track) {
+        return "WRONG STORAGE!";
+    }
+    switch(storage.track) {
+        case "2g":
+            return "{\"$type\":\"BcStart\",\"ClientKey\":\"2gcircuit\",\"ResourceId\":19495,\"Timing\":true,\"Notifications\":true,\"Security\":\"THIRD PARTY TV\"}";
+        case "Ingul":
+            return 'START 13143@ingulkart';
+        case "apex":
+            return "\n";
+    }
+    //return storage.track && storage.track === 'Ingul' ? 'START 13143@ingulkart' : "{\"$type\":\"BcStart\",\"ClientKey\":\"2gcircuit\",\"ResourceId\":19495,\"Timing\":true,\"Notifications\":true,\"Security\":\"THIRD PARTY TV\"}";
 }
 
 function getAdapter() {
@@ -349,6 +533,17 @@ function getAdapter() {
                 pitTime: 'Pit'
             };
         case '2g':
+            return {
+                data: 'Drivers',
+                teamName: 'Alias',
+                lapNumber: 'LapCount',
+                lapTime: 'LastTimeMs',
+                kart: 'K',
+                position: 'Position',
+                stint: 'StintTimeMs',
+                pitTime: 'CurrentPitTimeMs'
+            };
+        case 'apex':
             return {
                 data: 'Drivers',
                 teamName: 'Alias',
