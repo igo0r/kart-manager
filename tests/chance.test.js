@@ -22,6 +22,17 @@ test('Calculate rocket chance', () => {
     expect(storage.pitlane).toEqual([{rating: "rocket"}, {rating: "rocket"}, {rating: "rocket"}, {rating: "rocket"}]);
 });
 
+test('Calculate so-so chance with 3 rows and 2 in a row', () => {
+    storage.settings.rows = 3;
+    storage.settings.count = 2;
+    storage.pitlane = [{rating: "rocket"}, {rating: "soso"}, {rating: "soso"}, {rating: "soso"}];
+    recalculateChance();
+    expect(storage.chance).toEqual([
+        {"good": 0, "rocket": 0, "soso": 35, "sucks": 0, "unknown": 0},
+        {"good": 0, "rocket": 16, "soso": 25, "sucks": 0, "unknown": 0}]);
+    expect(storage.pitlane).toEqual([{rating: "rocket"}, {rating: "soso"}, {rating: "soso"}, {rating: "soso"}]);
+});
+
 test('Calculate good and rocket chance', () => {
     storage.pitlane = [{rating: "rocket"}, {rating: "good"}, {rating: "rocket"}, {rating: "good"}];
     recalculateChance();
@@ -47,9 +58,12 @@ function recalculateChance() {
     let firstPit = composeChance(pitlane);
     pitlane.unshift({rating: "fake"});
     let secondPit = composeChance(pitlane);
-    pitlane.unshift({rating: "fake"});
-    let thirdPit = composeChance(pitlane);
-    storage.chance = [firstPit, secondPit, thirdPit];
+    if(storage.settings.count > 2) {
+        pitlane.unshift({rating: "fake"});
+        storage.chance = [firstPit, secondPit, composeChance(pitlane)];
+    } else {
+        storage.chance = [firstPit, secondPit];
+    }
 }
 
 function composeChance(pitlane) {
@@ -67,7 +81,7 @@ function composeChance(pitlane) {
         let decreaseChance = 0;
         for (let i = startIndex; i < endIndex; i++) {
             chance[pitlane[i].rating] += parseInt((1 / (storage.settings.count * storage.settings.rows + decreaseChance)) * 100);
-            decreaseChance += 2;
+            decreaseChance += storage.settings.rows;
         }
     }
 

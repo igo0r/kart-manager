@@ -1,4 +1,4 @@
-initStorage('apex');
+initStorage('2g');
 
 let url = '';
 switch (storage.track) {
@@ -61,7 +61,7 @@ function parseApexData(data) {
             let rkCellNumber = document.querySelector("td[data-type='rk']").getAttribute('data-id');
 
             let dataId = racer.getAttribute('data-id');
-            let isPit = racer.querySelector(`td[data-id="${dataId}c2"]`).getAttribute('class');
+            let isPit = racer.querySelector(`td[data-id="${dataId}c1"]`).getAttribute('class');
             let teamName = racer.querySelector(`td[data-id="${dataId}${driverCellNumber}"]`).textContent;
             let kart = racer.querySelector(`div[data-id="${dataId}${kartCellNumber}"]`).textContent;
             let position = racer.querySelector(`p[data-id="${dataId}${rkCellNumber}"]`).textContent;
@@ -110,7 +110,8 @@ function parseApexData(data) {
                 document.querySelector(`[data-id="${splitted[0]}"]`).setAttribute('class', splitted[1]);
             }*/
             let teamId = (splitted[0].split('c'))[0];
-            if(item.includes('c2|si|')) {
+            if(item.includes('c1|si|')) {
+                console.log("MAYBE PIT??");
                 for (let name in storage.teams) {
                     if(storage.teams[name].id == teamId) {
                         console.log(`Check if ${name} is in PIT?????`);
@@ -176,7 +177,8 @@ function parseData(data) {
             console.log(`Set empty laps for ${item[adapter.teamName]}`);
             storage.teams[item[adapter.teamName]].laps = [];
             needToRecalculate = true;
-        } else if ((team.laps.length === 0 || team['last_lap'] !== item[adapter.lapNumber]) && item[adapter.lapTime] > 0) {
+        } else if ((team.laps.length === 0 || team['last_lap'] !== item[adapter.lapNumber]) && (item[adapter.lapTime] > 0 && item[adapter.lapTime] < 125000)) {
+
             console.log(`${item[adapter.teamName]} has new lap ${item[adapter.lapNumber]} with time: ${item[adapter.lapTime]}`);
             storage.teams[item[adapter.teamName]]['last_lap'] = item[adapter.lapNumber];
             storage.teams[item[adapter.teamName]]['kart'] = storage.track === '2g' ? item["Kart"]["Name"] : adapter.kart;
@@ -327,7 +329,7 @@ function drawRating() {
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
-Stint - ${storage.rating[name].stint} </div>`;
+Stint - ${this.convertToMinutes(storage.rating[name].stint)} </div>`;
     }
 
     document.getElementById('rating').innerHTML = data;
@@ -409,7 +411,7 @@ function initStorage(track) {
             rating: {},
             chance: [],
             classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
-            settings: {rows: 3, count: 3}
+            settings: {rows: 3, count: 2}
         };
         initSettings();
         window.storage.pitlane = fillInPitlaneWithUnknown();
@@ -474,9 +476,12 @@ function recalculateChance() {
     let firstPit = composeChance(pitlane);
     pitlane.unshift({rating: "fake"});
     let secondPit = composeChance(pitlane);
-    pitlane.unshift({rating: "fake"});
-    let thirdPit = composeChance(pitlane);
-    storage.chance = [firstPit, secondPit, thirdPit];
+    if(storage.settings.count > 2) {
+        pitlane.unshift({rating: "fake"});
+        storage.chance = [firstPit, secondPit, composeChance(pitlane)];
+    } else {
+        storage.chance = [firstPit, secondPit];
+    }
     saveToLocalStorage();
     drawChance();
 }
@@ -496,7 +501,7 @@ function composeChance(pitlane) {
         let decreaseChance = 0;
         for (let i = startIndex; i < endIndex; i++) {
             chance[pitlane[i].rating] += parseInt((1 / (storage.settings.count * storage.settings.rows + decreaseChance)) * 100);
-            decreaseChance += 2;
+            decreaseChance += storage.settings.rows;
         }
     }
 
