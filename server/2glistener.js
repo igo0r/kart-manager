@@ -1,7 +1,6 @@
 //const WebSocketHelper = require('./helpers/websockethelper').WebSocketHelper;
-import WebSocketHelper from './helpers/websockethelper.js';
-//const Ingul = require('./clients/ingul').Ingul;
-import Ingul from './clients/ingul.js'
+import WebSocketHelper from '../helpers/websockethelper.js';
+import Circuit2g from '../clients/Circuit2g.js'
 
 
 /*
@@ -39,6 +38,5 @@ import Ingul from './clients/ingul.js'
 
 global.storage = {teams:{}, rating: {}, pitlane: [], classes: {rocket: 22499, good: 22800, soso: 23100, sucks: 23400}};
 
-let client = new Ingul();
-//new WebSocketHelper('wss://webserver10.sms-timing.com:10015/', "13143@ingulkart", client);
-new WebSocketHelper('wss://webserver8.sms-timing.com:10015/', "13143@ingulkart", client);
+let client = new Circuit2g();
+new WebSocketHelper(client.getUrl(), client);

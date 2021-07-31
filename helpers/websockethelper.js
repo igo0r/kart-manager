@@ -6,39 +6,38 @@ class WebSocketHelper {
     /**
      *
      * @param address
-     * @param clientKey
-     * @param timingClient
+     * @param circuitClient
      */
-    constructor(address, clientKey, timingClient) {
+    constructor(address, circuitClient) {
         const client = new Websocket(address);
         this.wsClient = client;
 
         client.on('message', e => {
-            console.log("Message");
-            timingClient.parseData(JSON.parse(e));
-            console.log(e);
+            console.log("New message");
+            circuitClient.parseData(JSON.parse(e));
         });
 
         client.on('error', data => {
+            console.log('Error socket');
             console.log(data);
-            this.sendInitMsg(clientKey)
+            this.sendInitMsg(circuitClient.getInitMessage())
         });
 
         client.on('close', () => {
-            console.log('Closed');
-            this.sendInitMsg(clientKey)
+            console.log('Closed socket');
+            this.sendInitMsg(circuitClient.getInitMessage())
         });
 
         client.on('open', () => {
             console.log('WebSocket Client Connected');
             if (client.readyState === client.OPEN) {
-                this.sendInitMsg(clientKey)
+                this.sendInitMsg(circuitClient.getInitMessage())
             }
         });
     }
 
-    sendInitMsg(clientKey) {
-        this.doSend("{\"$type\":\"BcStart\",\"ClientKey\":\"2gcircuit\",\"ResourceId\":19495,\"Timing\":true,\"Notifications\":true,\"Security\":\"THIRD PARTY TV\"}");
+    sendInitMsg(initMessage) {
+        this.doSend(initMessage);
         //this.doSend(`START ${clientKey}`);
     }
 
@@ -47,5 +46,4 @@ class WebSocketHelper {
     }
 }
 
-//exports.WebSocketHelper = WebSocketHelper;
 export default WebSocketHelper;

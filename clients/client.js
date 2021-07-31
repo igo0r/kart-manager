@@ -1,44 +1,96 @@
-//const fs = require('fs');
-//import fs from '../node_modules/@types/node/fs.d.ts';
+import StorageHelper from '../helpers/storage.js';
 
 class Client {
-    constructor() {}
+    constructor() {
+        this.storage = new StorageHelper();
+        this.storage.initStorage();
+    }
+
+    get track() {
+        throw new Error("Implement me!");
+    }
 
     parseData() {
         throw new Error("Implement me!");
     }
 
-    recalculateRating() {
-        for (let name in storage.teams){
-            storage.rating[name] = this.defineTeamRating(storage.teams[name]);
-        }
-        this.writeToFile();
+    getInitMessage() {
+        throw new Error("Implement me!");
     }
 
-    defineTeamRating(val) {
-        if(val.laps.length === 0) {
-            return {rating: "unknown", avg: 0, best: 0}
-        }
-        let time = this.getTimeToCompare(val.laps);
-        let result = '';
-        if(time < storage.classes.rocket) {
-            result = 'rocket';
-        } else if(time < storage.classes.good) {
-            result = 'good';
-        } else if(time < storage.classes.soso) {
-            result = 'soso'
-        } else {
-            result = 'sucks'
-        }
-
-        return {rating: result, best: val.laps[0]['lap_time'], avg: val.laps[parseInt((val.laps.length - 1) / 2)]['lap_time']}
+    getUrl() {
+        throw new Error("Implement me!");
     }
 
-    getTimeToCompare(laps) {
-        laps.sort((a, b) => a.lap_time - b.lap_time);
-        let bestLap = laps[0]['lap_time'];
-        let avgLap = laps[parseInt((laps.length - 1) / 2)]['lap_time'];
-        return parseInt((bestLap + avgLap) / 2)
+    pitStop(name) {
+        this.addToPitlane(name);
+        this.storage.recalculateChance();
+    }
+
+    addToPitlane(name) {
+        let rate = global.storage.rating && global.storage.rating[name] ? global.storage.rating[name] : {
+            rating: 'unknown',
+            best: 99999,
+            avg: 99999
+        };
+        console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
+        global.storage.pitlane.unshift(rate);
+        global.storage.pitlane.length = this.storage.howManyKartsToKeep();
+        this.storage.saveToStorage();
+    }
+
+    addTeamIfNotExists(teamName) {
+        if (!global.storage.teams[teamName] || global.storage.teams[teamName] === undefined) {
+            global.storage.teams[teamName] = {}
+        }
+    }
+
+    addLapsForTeamIfNotExists(teamName) {
+        //Check racer/team has some laps
+        if (!global.storage.teams[teamName].laps || global.storage.teams[teamName].laps === undefined) {
+            global.storage.teams[teamName].laps = [];
+            global.storage.teams[teamName]['last_lap'] = 0
+        }
+    }
+
+    getAdapter() {
+        switch (this.track) {
+            case 'Ingul':
+                return {
+                    data: 'D',
+                    teamName: 'N',
+                    lapNumber: 'L',
+                    lapTime: 'T',
+                    kart: 'K',
+                    position: 'P',
+                    stint: 'S',
+                    pitTime: 'Pit'
+                };
+            case '2g':
+                return {
+                    data: 'Drivers',
+                    teamName: 'Alias',
+                    lapNumber: 'LapCount',
+                    lapTime: 'LastTimeMs',
+                    kart: 'K',
+                    position: 'Position',
+                    stint: 'StintTimeMs',
+                    pitTime: 'CurrentPitTimeMs'
+                };
+            case 'apex':
+                return {
+                    data: 'Drivers',
+                    teamName: 'Alias',
+                    lapNumber: 'LapCount',
+                    lapTime: 'LastTimeMs',
+                    kart: 'K',
+                    position: 'Position',
+                    stint: 'StintTimeMs',
+                    pitTime: 'CurrentPitTimeMs'
+                };
+            default:
+                throw new Error(`Wrong track name ${this.track}`)
+        }
     }
 
     printResult() {
@@ -51,22 +103,6 @@ class Client {
             console.log(`Rating: ${storage.rating[name].rating}, Best lap: ${storage.rating[name].best}, Avg lap: ${storage.rating[name].avg}`)
         }
     }
-
-    writeToFile() {
-        /*fs.writeFile('data.json', JSON.stringify(storage), (err) => {
-            if (err) throw err;
-        })*/
-       // fs.writeFileSync('data.json', JSON.stringify(storage))
-    }
-
-    readStorageData() {
-        if (!fs.existsSync('data.json')) {
-            return {};
-        }
-        let content = fs.readFileSync('data.json', 'utf8');
-        console.log(content);
-        return JSON.parse(fs.readFileSync('data.json', 'utf8'))
-    }
 }
-//exports.Client = Client;
+
 export default Client
