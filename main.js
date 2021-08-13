@@ -231,16 +231,16 @@ function convertToMiliSeconds(time) {
     return convertedTime;
 }
 
-function convertToMinutes(time) {
-    time = parseInt(time);
-    if(parseInt(time) < 1) {
-        return time;
+function convertToMinutes(origTime) {
+    let time = parseInt(origTime);
+    if(!time || time < 1) {
+        return origTime;
     }
     let seconds = parseInt(((time%60000)/1000));
     let minutes = parseInt(time/60000);
     let millisec = (time/1000).toString().split('.')[1] ?? '000';
 
-    return `${minutes}:${parseInt(seconds) < 10 ? '0' + seconds : seconds}:${millisec}`;
+    return `${minutes ?? 0}:${parseInt(seconds ?? 0) < 10 ? '0' + seconds : seconds}:${millisec}`;
 }
 
 function addLapsForTeamIfNotExists(teamName) {
@@ -363,7 +363,7 @@ function drawChance() {
 function drawPitlane() {
     let data = '';
     storage.pitlane.forEach(lane => {
-        data += `<div class="w-5 col border border-3 ${getBgColor(lane.rating)}">${lane.rating} Best ${this.convertToMinutes(lane.best)}, Avg ${this.convertToMinutes(lane.avg)}</div><br />`;
+        data += `<div class="col-sm border border-3 ${getBgColor(lane.rating)}">${lane.rating}</div>`;
     });
 
     document.getElementById('pitlane').innerHTML = data;
@@ -466,6 +466,7 @@ function setSoso(value) {
 }
 
 function pitStop(name) {
+    showToast(name);
     addToPitlane(name);
     drawPitlane();
     recalculateChance();
@@ -476,12 +477,9 @@ function recalculateChance() {
     let firstPit = composeChance(pitlane);
     pitlane.unshift({rating: "fake"});
     let secondPit = composeChance(pitlane);
-    if(storage.settings.count > 2) {
-        pitlane.unshift({rating: "fake"});
-        storage.chance = [firstPit, secondPit, composeChance(pitlane)];
-    } else {
-        storage.chance = [firstPit, secondPit];
-    }
+    pitlane.unshift({rating: "fake"});
+    storage.chance = [firstPit, secondPit, composeChance(pitlane)];
+
     saveToLocalStorage();
     drawChance();
 }
@@ -494,12 +492,15 @@ function composeChance(pitlane) {
         let startIndex = storage.settings.count - 1;
 
         //No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
-        let howManyKartsToKeep = ((storage.settings.rows * (storage.settings.count + 2)) + storage.settings.count);
+        let howManyKartsToKeep = this.howManyKartsToKeep();
 
         let endIndex = pitlane.length > howManyKartsToKeep ? howManyKartsToKeep : pitlane.length;
         //Every next pit - decrease chance
         let decreaseChance = 0;
         for (let i = startIndex; i < endIndex; i++) {
+            if(pitlane[i].rating === 'fake') {
+                continue;
+            }
             chance[pitlane[i].rating] += parseInt((1 / (storage.settings.count * storage.settings.rows + decreaseChance)) * 100);
             decreaseChance += storage.settings.rows;
         }
@@ -587,5 +588,26 @@ function fillInPitlaneWithUnknown() {
 
 //No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
 function howManyKartsToKeep() {
-    return ((storage.settings.rows * (storage.settings.count + 2)) + storage.settings.count);
+    return ((storage.settings.rows * (storage.settings.count + 1)) + storage.settings.count);
+}
+
+function showToast(team) {
+    let toastContainer = document.getElementById('toast-container');
+    let toastElem = document.createElement('div');
+    toastElem.setAttribute('class', 'toast align-items-center bg-warning');
+    toastElem.setAttribute('role', 'alert');
+    toastElem.setAttribute('aria-live', 'assertive');
+    toastElem.setAttribute('aria-atomic', 'true');
+    toastElem.innerHTML = `<div class="d-flex">
+                <div class="toast-body">
+                    <span id="toast-team-name">${team}</span> is in pit!
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>`;
+    toastContainer.append(toastElem);
+    toastElem.addEventListener('hidden.bs.toast', function () {
+        this.remove();
+    })
+    let toast = new bootstrap.Toast(toastElem);
+    toast.show();
 }

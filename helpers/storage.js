@@ -31,12 +31,9 @@ class StorageHelper {
         let firstPit = this.composeChance(pitlane);
         pitlane.unshift({rating: "fake"});
         let secondPit = this.composeChance(pitlane);
-        if(global.storage.settings.count > 2) {
-            pitlane.unshift({rating: "fake"});
-            global.storage.chance = [firstPit, secondPit, this.composeChance(pitlane)];
-        } else {
-            global.storage.chance = [firstPit, secondPit];
-        }
+        pitlane.unshift({rating: "fake"});
+        global.storage.chance = [firstPit, secondPit, this.composeChance(pitlane)];
+
         this.saveToStorage();
     }
 
@@ -55,12 +52,15 @@ class StorageHelper {
             let startIndex = global.storage.settings.count - 1;
 
             //No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
-            let howManyKartsToKeep = ((global.storage.settings.rows * (global.storage.settings.count + 2)) + global.storage.settings.count);
+            let howManyKartsToKeep = this.howManyKartsToKeep();
 
             let endIndex = pitlane.length > howManyKartsToKeep ? howManyKartsToKeep : pitlane.length;
             //Every next pit - decrease chance
             let decreaseChance = 0;
             for (let i = startIndex; i < endIndex; i++) {
+                if(pitlane[i].rating === 'fake') {
+                    continue;
+                }
                 chance[pitlane[i].rating] += parseInt((1 / (global.storage.settings.count * global.storage.settings.rows + decreaseChance)) * 100);
                 decreaseChance += global.storage.settings.rows;
             }
@@ -105,7 +105,7 @@ class StorageHelper {
     }
 
     howManyKartsToKeep() {
-        return ((global.storage.settings.rows * (global.storage.settings.count + 2)) + global.storage.settings.count);
+        return ((global.storage.settings.rows * (global.storage.settings.count + 1)) + global.storage.settings.count);
     }
 
     saveToStorage() {
