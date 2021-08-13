@@ -156,8 +156,8 @@ function parseApexData(data) {
 }
 
 function parseData(data) {
-    console.log(data);
-    console.log(storage);
+   // console.log(data);
+    //console.log(storage);
     let adapter = getAdapter();
     let needToRecalculate = false;
     if (!data[adapter.data]) {
@@ -178,7 +178,6 @@ function parseData(data) {
             storage.teams[item[adapter.teamName]].laps = [];
             needToRecalculate = true;
         } else if ((team.laps.length === 0 || team['last_lap'] !== item[adapter.lapNumber]) && (item[adapter.lapTime] > 0 && item[adapter.lapTime] < 125000)) {
-
             console.log(`${item[adapter.teamName]} has new lap ${item[adapter.lapNumber]} with time: ${item[adapter.lapTime]}`);
             storage.teams[item[adapter.teamName]]['last_lap'] = item[adapter.lapNumber];
             storage.teams[item[adapter.teamName]]['kart'] = storage.track === '2g' ? item["Kart"]["Name"] : adapter.kart;
