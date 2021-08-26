@@ -567,15 +567,19 @@ function getAdapter() {
 }
 
 function addToPitlane(name) {
-    let rate = storage.rating && storage.rating[name] ? storage.rating[name] : {
-        rating: 'unknown',
-        best: 99999,
-        avg: 99999
-    };
+    let rate = getTeamRating(name);
     console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
     storage.pitlane.unshift(rate);
     storage.pitlane.length = howManyKartsToKeep();
     saveToLocalStorage();
+}
+
+function getTeamRating(name) {
+    return storage.rating && storage.rating[name] ? storage.rating[name] : {
+        rating: 'unknown',
+        best: 99999,
+        avg: 99999
+    };
 }
 
 function fillInPitlaneWithUnknown() {
@@ -593,9 +597,12 @@ function howManyKartsToKeep() {
 }
 
 function showToast(team) {
+    let rating = getTeamRating(team);
+    let bgColor = getBgColor(rating.rating);
+
     let toastContainer = document.getElementById('toast-container');
     let toastElem = document.createElement('div');
-    toastElem.setAttribute('class', 'toast align-items-center bg-warning');
+    toastElem.setAttribute('class', `toast align-items-center ${bgColor}`);
     toastElem.setAttribute('role', 'alert');
     toastElem.setAttribute('aria-live', 'assertive');
     toastElem.setAttribute('aria-atomic', 'true');
