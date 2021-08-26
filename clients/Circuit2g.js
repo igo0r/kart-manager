@@ -94,7 +94,6 @@ class Circuit2G extends Client{
             global.storage.teams = {};
             global.storage.rating = {};
             global.storage.pitlane = this.storage.fillInPitlaneWithUnknown();
-            global.storage.chance = [];
         }
     }
 }

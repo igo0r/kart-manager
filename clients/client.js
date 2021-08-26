@@ -24,16 +24,14 @@ class Client {
 
     pitStop(name) {
         this.addToPitlane(name);
-        this.storage.recalculateChance();
     }
 
     addToPitlane(name) {
         let rate = global.storage.rating && global.storage.rating[name] ? global.storage.rating[name] : {
-            rating: 'unknown',
-            best: 99999,
-            avg: 99999
+            best: 0,
+            avg: 0
         };
-        console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
+        console.log(`Add kart to pitlane with ${rate.best}, ${rate.avg}`);
         global.storage.pitlane.unshift(rate);
         global.storage.pitlane.length = this.storage.howManyKartsToKeep();
         this.storage.saveToStorage();
@@ -100,7 +98,7 @@ class Client {
         }
         console.log("=============RATING=============");
         for (let name in storage.rating){
-            console.log(`Rating: ${storage.rating[name].rating}, Best lap: ${storage.rating[name].best}, Avg lap: ${storage.rating[name].avg}`)
+            console.log(`Best lap: ${storage.rating[name].best}, Avg lap: ${storage.rating[name].avg}`)
         }
     }
 }

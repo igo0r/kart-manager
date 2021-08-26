@@ -36,7 +36,7 @@ import Circuit2g from '../clients/Circuit2g.js'
        stint: 23322
  */
 
-global.storage = {teams:{}, rating: {}, pitlane: [], classes: {rocket: 22499, good: 22800, soso: 23100, sucks: 23400}};
+global.storage = {teams:{}, rating: {}, pitlane: []};
 
 let client = new Circuit2g();
 new WebSocketHelper(client.getUrl(), client);

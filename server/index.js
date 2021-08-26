@@ -9,8 +9,8 @@ import StorageHelper from "../helpers/storage.js";
 
 const app = express();
 
-app.use(cors());
-app.options('*', cors());
+/*app.use(cors());
+app.options('*', cors());*/
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
