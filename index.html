@@ -7,31 +7,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <title>KARTING MANAGER 0.3</title>
 </head>
 <body>
 <div class="container">
-    <br />
-    <button type="button" class="btn btn-primary" onclick="reset()">RESET ALL DATA</button><br /><img id="finish" style="display: none;" src="flag.jpeg" width="200" />
-    <br />
-    <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon4">Rows =</span>
-        <input type="text" class="form-control" placeholder="rows" id="rows" aria-describedby="basic-addon4" onchange="setRows(this.value)">
-        <span class="input-group-text" id="basic-addon5">Karts in a row =</span>
-        <input type="text" class="form-control" placeholder="count in a row" id="count" aria-describedby="basic-addon5" onchange="setCountInRow(this.value)">
-        <span class="input-group-text" id="basic-addon1">Rocket <</span>
-        <input type="text" class="form-control" placeholder="rocket" id="rocket" aria-describedby="basic-addon1" onchange="setRocket(this.value)">
-        <span class="input-group-text" id="basic-addon2">Good <</span>
-        <input type="text" class="form-control" placeholder="good" id="good" aria-describedby="basic-addon2" onchange="setGood(this.value)">
-        <span class="input-group-text" id="basic-addon3">So-so <</span>
-        <input type="text" class="form-control" placeholder="so-so" id="soso" aria-describedby="basic-addon3" onchange="setSoso(this.value)">
+    <br/>
+    <button type="button" class="btn btn-primary" onclick="reset()">RESET ALL DATA</button>
+    <br/><img id="finish" style="display: none;" src="flag.jpeg" width="200"/>
+    <br/>
+    <div>
+        <div class="row">
+            <div class="col border">
+                <h3>Pitlane rows</h3>
+                <div class="input-group">
+                    <span class="input-group-text" >How many rows?</span>
+                    <input type="text" class="form-control" placeholder="rows count" id="rows-count"
+                           aria-describedby="basic-addon5"
+                           onchange="setRows(this.value)">
+                </div>
+                <br />
+                <div class="input-group" id="rows-with-karts">
+                </div>
+            </div>
+            <div class="col-6 border">
+                <h3>Lap time</h3>
+                <div class="input-group">
+                    <span class="input-group-text" id="basic-addon1">Rocket <</span>
+                    <input type="text" class="form-control" placeholder="rocket" id="rocket"
+                           aria-describedby="basic-addon1"
+                           onchange="setRocket(this.value)">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text" id="basic-addon2">Good <</span>
+                    <input type="text" class="form-control" placeholder="good" id="good" aria-describedby="basic-addon2"
+                           onchange="setGood(this.value)">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text" id="basic-addon3">So-so <</span>
+                    <input type="text" class="form-control" placeholder="so-so" id="soso"
+                           aria-describedby="basic-addon3"
+                           onchange="setSoso(this.value)">
+                </div>
+            </div>
+        </div>
     </div>
     <h1>Pitlane chance</h1>
     <div id="chance" class="row"></div>
     <h1>Pitlane ➡︎</h1>
-    <div id="pitlane" class="row"></div>
+    <div id="pitlane" class="row row-cols-15"></div>
     <h1>Rating</h1>
     <div id="rating" class="row"></div>
     <h1>All Laps</h1>
@@ -50,7 +76,9 @@
 <!-- Optional JavaScript; choose one of the two! -->
 
 <!-- Option 1: Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
 <script src="main.js"></script>
 </body>
 </html>

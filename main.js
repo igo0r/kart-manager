@@ -32,7 +32,7 @@ webSocket.onclose = function (error) {
 }
 
 webSocket.onmessage = function (event) {
-    if(storage.track === 'apex') {
+    if (storage.track === 'apex') {
         parseApexData(event.data)
     } else {
         parseData(JSON.parse(event.data))
@@ -49,7 +49,7 @@ function parseApexData(data) {
     console.log(data);
     console.log(storage);
     let items = data.split('\n');
-    if(data.includes('init|')) {
+    if (data.includes('init|')) {
         let grid = items.filter(item => item.includes('grid|'));
         let gridItems = grid[0].split('|');
         document.getElementById('apex-results').innerHTML = gridItems[2];
@@ -69,7 +69,7 @@ function parseApexData(data) {
             this.addTeamIfNotExists(teamName);
             this.addLapsForTeamIfNotExists(teamName);
             //pitstop
-            if(isPit && isPit == 'si') {
+            if (isPit && isPit == 'si') {
                 console.log(`${teamName} is in PIT!!!!`);
                 !storage.teams[teamName]['pitstop'] ? pitStop(teamName) : '';
                 storage.teams[teamName]['pitstop'] = true;
@@ -78,7 +78,7 @@ function parseApexData(data) {
                 recalculateRating();
                 return;
             }
-            if(lapTime === '' || (storage.teams[teamName]['last_lap_time'] && storage.teams[teamName]['last_lap_time'] === lapTime)) {
+            if (lapTime === '' || (storage.teams[teamName]['last_lap_time'] && storage.teams[teamName]['last_lap_time'] === lapTime)) {
                 return;
             }
             console.log(`${teamName} has new lap with time: ${lapTime}`);
@@ -99,23 +99,23 @@ function parseApexData(data) {
     } else {
         items.forEach(item => {
             let splitted = item.split('|');
-            if(splitted.length < 3) {
+            if (splitted.length < 3) {
                 return;
             }
 
             let lastLapCellNumber = document.querySelector("td[data-type='llp']").getAttribute('data-id');
 
-           /* if (document.querySelector(`[data-id="${splitted[0]}"]`)) {
-                document.querySelector(`[data-id="${splitted[0]}"]`).innerHTML = splitted[2];
-                document.querySelector(`[data-id="${splitted[0]}"]`).setAttribute('class', splitted[1]);
-            }*/
+            /* if (document.querySelector(`[data-id="${splitted[0]}"]`)) {
+                 document.querySelector(`[data-id="${splitted[0]}"]`).innerHTML = splitted[2];
+                 document.querySelector(`[data-id="${splitted[0]}"]`).setAttribute('class', splitted[1]);
+             }*/
             let teamId = (splitted[0].split('c'))[0];
-            if(item.includes('c1|si|')) {
+            if (item.includes('c1|si|')) {
                 console.log("MAYBE PIT??");
                 for (let name in storage.teams) {
-                    if(storage.teams[name].id == teamId) {
+                    if (storage.teams[name].id == teamId) {
                         console.log(`Check if ${name} is in PIT?????`);
-                        if(storage.teams[name]['pitstop']) {
+                        if (storage.teams[name]['pitstop']) {
                             return;
                         }
                         console.log(`${name} is in PIT!!!!`);
@@ -129,14 +129,14 @@ function parseApexData(data) {
                 return;
             }
             //new lap for team
-            if(item.includes(lastLapCellNumber + '|')) {
+            if (item.includes(lastLapCellNumber + '|')) {
                 //bad lap
-                if(splitted[2].length <= 1) {
+                if (splitted[2].length <= 1) {
                     return;
                 }
                 //Format = r183c11|ib|1:01.707
                 for (let name in storage.teams) {
-                    if(storage.teams[name].id == teamId) {
+                    if (storage.teams[name].id == teamId) {
                         let lapTime = this.convertToMiliSeconds(splitted[2]);
                         console.log(`${name} has new lap with time: ${lapTime}`);
                         storage.teams[name]['last_lap_time'] = lapTime;
@@ -156,7 +156,7 @@ function parseApexData(data) {
 }
 
 function parseData(data) {
-   // console.log(data);
+    // console.log(data);
     //console.log(storage);
     console.log('Response received');
     let adapter = getAdapter();
@@ -211,7 +211,7 @@ function parseData(data) {
 }
 
 function convertToMiliSeconds(time) {
-    if(time.length < 2) {
+    if (time.length < 2) {
         return time;
     }
     let convertedTime = 0;
@@ -219,11 +219,11 @@ function convertToMiliSeconds(time) {
     let splittedMilisec = time.split('.');
     //Get minutes and seconds
     let milliseconds = 0;
-    if(splittedMilisec.length > 1) {
+    if (splittedMilisec.length > 1) {
         milliseconds = parseInt(splittedMilisec[1]);
     }
     let splittedHM = splittedMilisec[0].split(':');
-    if(splittedHM.length > 1) {
+    if (splittedHM.length > 1) {
         convertedTime = parseInt(splittedHM[0]) * 60 * 1000 + parseInt(splittedHM[1]) * 1000 + milliseconds;
     } else {
         convertedTime = parseInt(splittedHM[1]) * 1000 + milliseconds;
@@ -234,12 +234,12 @@ function convertToMiliSeconds(time) {
 
 function convertToMinutes(origTime) {
     let time = parseInt(origTime);
-    if(!time || time < 1) {
+    if (!time || time < 1) {
         return origTime;
     }
-    let seconds = parseInt(((time%60000)/1000));
-    let minutes = parseInt(time/60000);
-    let millisec = (time/1000).toString().split('.')[1] ?? '000';
+    let seconds = parseInt(((time % 60000) / 1000));
+    let minutes = parseInt(time / 60000);
+    let millisec = (time / 1000).toString().split('.')[1] ?? '000';
 
     return `${minutes ?? 0}:${parseInt(seconds ?? 0) < 10 ? '0' + seconds : seconds}:${millisec}`;
 }
@@ -257,6 +257,7 @@ function addTeamIfNotExists(teamName) {
         storage.teams[teamName] = {}
     }
 }
+
 function recalculateRating() {
     for (let name in storage.teams) {
         storage.rating[name] = defineTeamRating(storage.teams[name]);
@@ -292,13 +293,13 @@ function defineTeamRating(val) {
 }
 
 function getTimeToCompare(laps) {
-    if(laps.length < 3) {
+    if (laps.length < 3) {
         return laps[1].lap_time
     }
     laps.sort((a, b) => a.lap_time - b.lap_time);
     let maxLength = laps.length > 10 ? 10 : laps.length;
     let avg = 0;
-    for(let i = 2; i < maxLength; i++) {
+    for (let i = 2; i < maxLength; i++) {
         avg += laps[i].lap_time;
     }
     return parseInt(avg / (maxLength - 2));
@@ -316,6 +317,7 @@ function printResult() {
 }
 
 function drawHTML() {
+    drawSettings();
     drawChance();
     drawRating();
     drawPitlane();
@@ -363,11 +365,36 @@ function drawChance() {
 
 function drawPitlane() {
     let data = '';
-    storage.pitlane.forEach(lane => {
+    for(let i = storage.pitlane.length - 1; i >= 0; i-- ) {
+        data += `<div class="col border border-3 ${getBgColor(storage.pitlane[i].rating)}">${storage.pitlane[i].rating.substr(0,1)}</div>`;
+    }
+    /*storage.pitlane.forEach(lane => {
         data += `<div class="col-sm border border-3 ${getBgColor(lane.rating)}">${lane.rating}</div>`;
-    });
+    });*/
 
     document.getElementById('pitlane').innerHTML = data;
+}
+
+function drawSettings() {
+    document.getElementById('rocket').value = storage.classes.rocket;
+    document.getElementById('good').value = storage.classes.good;
+    document.getElementById('soso').value = storage.classes.soso;
+
+    for (let i = 0; i < storage.settings.rows.length; i++) {
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : 0;
+    }
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row);
+    document.getElementById('rows-count').value = storage.settings.rows.length;
+    document.getElementById('rows-with-karts').innerHTML = '';
+    let data = '';
+    storage.settings.rows.forEach((kartsInRow, index) => {
+        data += `<span class="input-group-text" >#${index + 1}</span>
+                    <input type="text" class="form-control" placeholder="karts in row" id="row-${index}"
+                           onchange="setKartsInRow(${index}, this.value)" value="${kartsInRow}">`;
+
+    });
+    document.getElementById('rows-with-karts').innerHTML = data;
+    saveToLocalStorage();
 }
 
 function getBgColor(rating) {
@@ -403,18 +430,16 @@ function reset() {
 //2g || Ingul
 function initStorage(track) {
     let fromLocalStorage = getFromLocalStorage();
-    if(fromLocalStorage) {
+    if (fromLocalStorage) {
         window.storage = fromLocalStorage;
-        initSettings();
     } else {
         window.storage = {
             teams: {},
             rating: {},
             chance: [],
             classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
-            settings: {rows: 3, count: 2}
+            settings: {rows: [2, 2, 2], rowsSum: 6}
         };
-        initSettings();
         window.storage.pitlane = fillInPitlaneWithUnknown();
     }
 
@@ -423,27 +448,25 @@ function initStorage(track) {
     recalculateChance();
 }
 
-function initSettings() {
-    document.getElementById('rocket').value = storage.classes.rocket;
-    document.getElementById('good').value = storage.classes.good;
-    document.getElementById('soso').value = storage.classes.soso;
-
-    document.getElementById('rows').value = storage.settings.rows;
-    document.getElementById('count').value = storage.settings.count;
-}
-
 function showFlag(show) {
     document.getElementById('finish').setAttribute('style', show ? '' : 'display: none;');
 }
 
-function setRows(value) {
-    storage.settings.rows = parseInt(value);
+function setKartsInRow(index, value) {
+    storage.settings.rows[index] = parseInt(value);
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row);
+    drawSettings();
     saveToLocalStorage();
     recalculateChance();
 }
 
-function setCountInRow(value) {
-    storage.settings.count = parseInt(value);
+function setRows(value) {
+    storage.settings.rows = storage.settings.rows ? storage.settings.rows : [];
+    storage.settings.rows.length = parseInt(value);
+    for (let i = 0; i < value; i++) {
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : 0;
+    }
+    drawSettings();
     saveToLocalStorage();
     recalculateChance();
 }
@@ -476,9 +499,11 @@ function pitStop(name) {
 function recalculateChance() {
     let pitlane = [...storage.pitlane];
     let firstPit = composeChance(pitlane);
-    pitlane.unshift({rating: "fake"});
+    pitlane.push({rating: "unknown"});
+    pitlane = cutPitlaneToTheSize(pitlane);
     let secondPit = composeChance(pitlane);
-    pitlane.unshift({rating: "fake"});
+    pitlane.push({rating: "unknown"});
+    pitlane = cutPitlaneToTheSize(pitlane);
     storage.chance = [firstPit, secondPit, composeChance(pitlane)];
 
     saveToLocalStorage();
@@ -486,36 +511,54 @@ function recalculateChance() {
 }
 
 function composeChance(pitlane) {
-    let chance = {rocket: 0, good: 0, soso: 0, sucks: 0, unknown: 0};
-    //pitlane length should be more than count karts in a lane
-    if (pitlane && pitlane.length >= storage.settings.count) {
-        //3 karts in a row - we need at least 3 karts in a lane
-        let startIndex = storage.settings.count - 1;
-
-        //No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
-        let howManyKartsToKeep = this.howManyKartsToKeep();
-
-        let endIndex = pitlane.length > howManyKartsToKeep ? howManyKartsToKeep : pitlane.length;
-        //Every next pit - decrease chance
-        let decreaseChance = 0;
-        for (let i = startIndex; i < endIndex; i++) {
-            if(pitlane[i].rating === 'fake') {
-                continue;
-            }
-            chance[pitlane[i].rating] += parseInt((1 / (storage.settings.count * storage.settings.rows + decreaseChance)) * 100);
-            decreaseChance += storage.settings.rows;
-        }
-    }
-
-    return chance;
+    let result = composeVariants(pitlane);
+    console.log(result);
+    return {
+        rocket: result.rocket ? (100 * result.rocket / result.all).toFixed(2) : 0,
+        good: result.good ? (100 * result.good / result.all).toFixed(2) : 0,
+        soso: result.soso ? (100 * result.soso / result.all).toFixed(2) : 0,
+        sucks: result.sucks ? (100 * result.sucks / result.all).toFixed(2) : 0,
+        unknown: result.unknown ? (100 * result.unknown / result.all).toFixed(2) : 0,
+    };
 }
 
+function composeVariants(pitlane, result = {}) {
+    if (pitlane.length > storage.settings.rowsSum) {
+        let startIndex = 0;
+        storage.settings.rows.forEach(row => {
+            if (row < 1) {
+                return;
+            }
+            let tmpPitlane = [...pitlane];
+            let a = tmpPitlane[storage.settings.rowsSum];
+            tmpPitlane.splice(storage.settings.rowsSum, 1);
+            tmpPitlane.splice(startIndex, 1);
+            startIndex += row;
+            tmpPitlane.splice(startIndex - 1, 0, a);
+            composeVariants(tmpPitlane, result)
+        })
+    }
+    if (pitlane.length === storage.settings.rowsSum) {
+        let startIndex = 0;
+        storage.settings.rows.forEach(row => {
+            if (row < 1) {
+                return;
+            }
+            let type = pitlane[startIndex].rating;
+            result[type] = result[type] ? result[type] + 1 : 1;
+            result.all = result.all ? result.all + 1 : 1;
+            startIndex += row;
+        })
+    }
+
+    return result;
+}
 
 function getInitMessage() {
-    if(!storage || !storage.track) {
+    if (!storage || !storage.track) {
         return "WRONG STORAGE!";
     }
-    switch(storage.track) {
+    switch (storage.track) {
         case "2g":
             return "{\"$type\":\"BcStart\",\"ClientKey\":\"2gcircuit\",\"ResourceId\":19495,\"Timing\":true,\"Notifications\":true,\"Security\":\"THIRD PARTY TV\"}";
         case "Ingul":
@@ -566,11 +609,19 @@ function getAdapter() {
     }
 }
 
+function cutPitlaneToTheSize(pitlane) {
+    while (pitlane.length > howManyKartsToKeep()) {
+        pitlane.splice(0, 1);
+    }
+
+    return pitlane;
+}
+
 function addToPitlane(name) {
     let rate = getTeamRating(name);
     console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
-    storage.pitlane.unshift(rate);
-    storage.pitlane.length = howManyKartsToKeep();
+    storage.pitlane.push(rate);
+    storage.pitlane = cutPitlaneToTheSize(storage.pitlane);
     saveToLocalStorage();
 }
 
@@ -584,7 +635,7 @@ function getTeamRating(name) {
 
 function fillInPitlaneWithUnknown() {
     let pit = [];
-    for (let i = 0; i <= howManyKartsToKeep(); i++) {
+    for (let i = 0; i < howManyKartsToKeep(); i++) {
         pit.push({rating: 'unknown', best: 99999, avg: 99999});
     }
 
@@ -593,7 +644,7 @@ function fillInPitlaneWithUnknown() {
 
 //No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
 function howManyKartsToKeep() {
-    return ((storage.settings.rows * (storage.settings.count + 1)) + storage.settings.count);
+    return 15;
 }
 
 function showToast(team) {
@@ -615,7 +666,7 @@ function showToast(team) {
     toastContainer.append(toastElem);
     toastElem.addEventListener('hidden.bs.toast', function () {
         this.remove();
-    })
+    });
     let toast = new bootstrap.Toast(toastElem);
     toast.show();
 }
