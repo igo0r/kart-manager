@@ -184,6 +184,7 @@ function parseData(data) {
             storage.teams[item[adapter.teamName]]['last_lap'] = item[adapter.lapNumber];
             storage.teams[item[adapter.teamName]].kart = storage.track === '2g' ? item["Kart"]["Name"] : adapter.kart;
             storage.teams[item[adapter.teamName]].pitstop = false;
+            storage.teams[item[adapter.teamName]].driver = item["Drivers"] && item["Drivers"][0] && item["Drivers"][0]["Alias"] ? item["Drivers"][0]["Alias"] : item[adapter.teamName];
             storage.teams[item[adapter.teamName]].stint = item[adapter.stint] ? item[adapter.stint] : 0;
             storage.teams[item[adapter.teamName]].laps.push({
                 lap: item[adapter.lapNumber],
@@ -203,10 +204,14 @@ function parseData(data) {
         console.log("===============HIT IS OVER!==================");
         this.printResult();
         !needToRecalculate ? recalculateRating() : '';
+        for(let teamName in storage.teams) {
+            addLapsToStatistics(teamName);
+        }
         storage.teams = {};
         storage.rating = {};
         storage.pitlane = fillInPitlaneWithUnknown();
         storage.chance = [];
+        saveToLocalStorage();
     }
 }
 
@@ -412,18 +417,28 @@ function getBgColor(rating) {
     }
 }
 
-function saveToLocalStorage() {
-    return localStorage.setItem('storage', JSON.stringify(storage)) ?? {};
+function saveToLocalStorage(whatToSave = 'storage') {
+    if(whatToSave === 'storage') {
+        return localStorage.setItem('storage', JSON.stringify(storage)) ?? {};
+    } else if(whatToSave === 'statistic') {
+        return localStorage.setItem('statistic', JSON.stringify(statistic)) ?? {};
+    }
 }
 
-function getFromLocalStorage() {
-    return JSON.parse(localStorage.getItem('storage'));
+function getFromLocalStorage(whatToGet = 'storage') {
+    if(whatToGet === 'storage') {
+        return JSON.parse(localStorage.getItem('storage'));
+    } else if(whatToGet === 'statistic') {
+        return JSON.parse(localStorage.getItem('statistic'));
+    }
 }
 
 function reset() {
     localStorage.removeItem('storage');
+    localStorage.removeItem('statistic');
     initStorage(window.storage.track);
     saveToLocalStorage();
+    saveToLocalStorage('statistic');
     recalculateRating();
 }
 
@@ -441,6 +456,12 @@ function initStorage(track) {
             settings: {rows: [2, 2, 2], rowsSum: 6}
         };
         window.storage.pitlane = fillInPitlaneWithUnknown();
+    }
+    let statisticFromLocalStorage = getFromLocalStorage('statistic');
+    if (statisticFromLocalStorage) {
+        window.statistic = statisticFromLocalStorage;
+    } else {
+        window.statistic = {};
     }
 
     window.storage.track = track;
@@ -491,9 +512,25 @@ function setSoso(value) {
 
 function pitStop(name) {
     showToast(name);
+    addLapsToStatistics(name);
     addToPitlane(name);
     drawPitlane();
     recalculateChance();
+}
+
+function addLapsToStatistics(name) {
+    statistic = !statistic ? {} : statistic;
+    statistic[name] = statistic[name] ? statistic[name] : [];
+    if(storage.teams[name] && storage.teams[name].laps) {
+        statistic[name].push(
+            {
+                driver: storage.teams[name].driver ?? 'noname',
+                stint: storage.teams[name].stint ?? 0,
+                laps: storage.teams[name].laps
+            }
+        )
+    }
+    saveToLocalStorage('statistic');
 }
 
 function recalculateChance() {
