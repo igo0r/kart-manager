@@ -302,7 +302,7 @@ function getTimeToCompare(laps) {
         return laps[1].lap_time
     }
     laps.sort((a, b) => a.lap_time - b.lap_time);
-    let maxLength = laps.length > 10 ? 10 : laps.length;
+    let maxLength = laps.length > 5 ? 5 : laps.length;
     let avg = 0;
     for (let i = 2; i < maxLength; i++) {
         avg += laps[i].lap_time;
