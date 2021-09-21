@@ -73,9 +73,11 @@ function parseApexData(data) {
                 console.log(`${teamName} is in PIT!!!!`);
                 !storage.teams[teamName]['pitstop'] ? pitStop(teamName) : '';
                 storage.teams[teamName]['pitstop'] = true;
+                storage.teams[teamName]['id'] = dataId;
+                storage.teams[teamName]['kart'] = kart;
                 console.log(`Set empty laps for ${teamName}`);
                 storage.teams[teamName].laps = [];
-                recalculateRating();
+                recalculateRating(false);
                 return;
             }
             if (lapTime === '' || (storage.teams[teamName]['last_lap_time'] && storage.teams[teamName]['last_lap_time'] === lapTime)) {
@@ -94,7 +96,7 @@ function parseApexData(data) {
                 kart,
                 position
             });
-            recalculateRating();
+            recalculateRating(false);
         });
     } else {
         items.forEach(item => {
@@ -123,7 +125,7 @@ function parseApexData(data) {
                         storage.teams[name]['pitstop'] = true;
                         console.log(`Set empty laps for ${name}`);
                         storage.teams[name].laps = [];
-                        recalculateRating();
+                        recalculateRating(false);
                     }
                 }
                 return;
@@ -147,7 +149,7 @@ function parseApexData(data) {
                             "lap_time": lapTime,
                             "converted_lap_time": lapTime
                         });
-                        recalculateRating();
+                        recalculateRating(false);
                     }
                 }
             }
@@ -196,14 +198,14 @@ function parseData(data) {
         }
     });
     if (needToRecalculate) {
-        recalculateRating();
+        recalculateRating(false);
     }
 
     showFlag(storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0);
     if (storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0) {
         console.log("===============HIT IS OVER!==================");
         this.printResult();
-        !needToRecalculate ? recalculateRating() : '';
+        !needToRecalculate ? recalculateRating(false) : '';
         for(let teamName in storage.teams) {
             addLapsToStatistics(teamName);
         }
@@ -263,13 +265,13 @@ function addTeamIfNotExists(teamName) {
     }
 }
 
-function recalculateRating() {
+function recalculateRating(drawSettings = true) {
     for (let name in storage.teams) {
         storage.rating[name] = defineTeamRating(storage.teams[name]);
     }
 
     saveToLocalStorage();
-    drawHTML();
+    drawHTML(drawSettings);
 }
 
 function defineTeamRating(val) {
@@ -321,8 +323,10 @@ function printResult() {
     }
 }
 
-function drawHTML() {
-    drawSettings();
+function drawHTML(withSettings = true) {
+    if(withSettings) {
+        drawSettings();
+    }
     drawChance();
     drawRating();
     drawPitlane();
