@@ -18,42 +18,53 @@
     <button type="button" class="btn btn-primary" onclick="reset()">RESET ALL DATA</button>
     <br/><img id="finish" style="display: none;" src="flag.jpeg" width="200"/>
     <br/>
-    <div>
-        <div class="row">
-            <div class="col border">
-                <h3>Pitlane rows</h3>
-                <div class="input-group">
-                    <span class="input-group-text" >How many rows?</span>
-                    <input type="text" class="form-control" placeholder="rows count" id="rows-count"
-                           aria-describedby="basic-addon5"
-                           onchange="setRows(this.value)">
+    <div class="accordion" id="accordionExample">
+        <div class="accordion-item">
+            <h2 class="row accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
+                        aria-expanded="true" aria-controls="collapseOne">
+                    Settings
+                </button>
+            </h2>
+            <div id="collapseOne" class="row accordion-collapse collapse show" aria-labelledby="headingOne"
+                 data-bs-parent="#accordionExample">
+                <div class="col border">
+                    <h3>Pitlane rows</h3>
+                    <div class="input-group">
+                        <span class="input-group-text">How many rows?</span>
+                        <input type="text" class="form-control" placeholder="rows count" id="rows-count"
+                               aria-describedby="basic-addon5"
+                               onchange="setRows(this.value)">
+                    </div>
+                    <br/>
+                    <div class="input-group" id="rows-with-karts">
+                    </div>
                 </div>
-                <br />
-                <div class="input-group" id="rows-with-karts">
-                </div>
-            </div>
-            <div class="col-6 border">
-                <h3>Lap time</h3>
-                <div class="input-group">
-                    <span class="input-group-text" id="basic-addon1">Rocket <</span>
-                    <input type="text" class="form-control" placeholder="rocket" id="rocket"
-                           aria-describedby="basic-addon1"
-                           onchange="setRocket(this.value)">
-                </div>
-                <div class="input-group">
-                    <span class="input-group-text" id="basic-addon2">Good <</span>
-                    <input type="text" class="form-control" placeholder="good" id="good" aria-describedby="basic-addon2"
-                           onchange="setGood(this.value)">
-                </div>
-                <div class="input-group">
-                    <span class="input-group-text" id="basic-addon3">So-so <</span>
-                    <input type="text" class="form-control" placeholder="so-so" id="soso"
-                           aria-describedby="basic-addon3"
-                           onchange="setSoso(this.value)">
+                <div class="col-6 border">
+                    <h3>Lap time</h3>
+                    <div class="input-group">
+                        <span class="input-group-text" id="basic-addon1">Rocket <</span>
+                        <input type="text" class="form-control" placeholder="rocket" id="rocket"
+                               aria-describedby="basic-addon1"
+                               onchange="setRocket(this.value)">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text" id="basic-addon2">Good <</span>
+                        <input type="text" class="form-control" placeholder="good" id="good"
+                               aria-describedby="basic-addon2"
+                               onchange="setGood(this.value)">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text" id="basic-addon3">So-so <</span>
+                        <input type="text" class="form-control" placeholder="so-so" id="soso"
+                               aria-describedby="basic-addon3"
+                               onchange="setSoso(this.value)">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    <p>&nbsp;</p>
     <h1>Pitlane chance</h1>
     <div id="chance" class="row"></div>
     <h1>Pitlane ➡︎</h1>
