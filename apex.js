@@ -34,7 +34,7 @@ function trackQueue() {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if (window.lastUpdate && (new Date() - window.lastUpdate) > 50000) {
+        if (window.lastUpdate && (new Date() - window.lastUpdate) > 30000) {
             console.log("No data from from timing! Reloading the page");
             window.location.reload();
             showWarningToast("No data from from timing! Reload the page!");
@@ -257,10 +257,37 @@ function drawRating() {
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
-Stint - ${this.convertToHours(storage.rating[name].stint)} </div>`;
+Stint - ${this.convertToHours(storage.rating[name].stint)} 
+${getPreviousHistory(name)}
+</div>`;
     }
 
     document.getElementById('rating').innerHTML = data;
+}
+
+function getPreviousHistoryForPitlane(data) {
+    let html = "";
+    if(data.rating) {
+        html += `<br />History:<br />
+        ${data.rating}<br />
+        ${data.avg ? 'Avg: ' + convertToMinutes(data.avg) : ''}<br />
+        ${data.best ? 'Best: ' + convertToMinutes(data.best) : ''}
+        `;
+    }
+
+    return html;
+}
+
+function getPreviousHistory(name) {
+    let html = "";
+    if(storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
+        html += `<br />History:<br />
+        ${storage.teams[name].previousHistory.rating}<br />
+        ${storage.teams[name].previousHistory.avg ? 'Avg: ' + convertToMinutes(storage.teams[name].previousHistory.avg) : ''}
+        `;
+    }
+
+    return html;
 }
 
 function drawLaps() {
@@ -327,11 +354,16 @@ function setPitlaneRowForPitstop(item) {
     if (storage.queue && storage.queue.length > 0) {
         if (item.name !== 'ignore') {
             storage.pitlane[item.name].push(storage.queue[0]);
-            storage.pitlane[item.name].shift();
+            let kart = storage.pitlane[item.name].shift();
+            if(storage.queue[0].name) {
+                let teamId = storage.queue[0].name;
+                storage.teams[teamId].previousHistory = kart;
+            }
         }
         storage.queue.shift();
         saveToLocalStorage();
         drawPitlane();
+        drawRating();
         window.showPitlaneChoice.hide();
     }
 }
@@ -371,6 +403,16 @@ function showPitlaneKartData(item) {
     let kart = storage.pitlane[item.name[0]][item.name[1]];
     document.getElementById('kart-data-modal').setAttribute('name', item.name);
     document.getElementById(`kart-${kart.rating}`).checked = true;
+
+    if(storage.pitlane[item.name[0]][item.name[1]].previousHistory && storage.pitlane[item.name[0]][item.name[1]].previousHistory.rating) {
+        document.getElementById('pitlane-form-history').innerHTML = getPreviousHistoryForPitlane(storage.pitlane[item.name[0]][item.name[1]].previousHistory);
+    }
+
+    if(kart.avg) {
+        document.getElementById('pitlane-form-kart-data').innerHTML = `
+        Avg: ${convertToMinutes(kart.avg)}${kart.best ? '<br />Best: ' + convertToMinutes(kart.best) : ''}
+        `;
+    }
 
     window.showPitlaneKartForm = new bootstrap.Modal(document.getElementById('pitlane-kart-data'));
     window.showPitlaneKartForm.show();
@@ -582,6 +624,9 @@ function getInitMessage() {
 function addToPitlaneQueue(name) {
     let rate = getTeamRating(name);
     rate.name = name;
+    if(storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
+        rate.previousHistory = storage.teams[name].previousHistory
+    }
     console.log(`Add ${storage.teams[name].teamName ?? "unknown"} team to pitlane queue with ${rate.rating},${rate.best}, ${rate.avg}`);
     storage.queue.push(rate);
     saveToLocalStorage();
@@ -630,7 +675,7 @@ function showToast(team) {
     toastElem.setAttribute('aria-atomic', 'true');
     toastElem.innerHTML = `<div class="d-flex">
                 <div class="toast-body">
-                    <span id="toast-team-name">${storage.teams[team]['teamName']}</span> is in pit!
+                    <span id="toast-team-name">#${storage.teams[team].kart} ${storage.teams[team]['teamName']}</span> is in pit!
                 </div>
                 <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>`;
