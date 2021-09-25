@@ -97,7 +97,7 @@ function parseApexData(data) {
                 storage.teams[dataId]['last_lap_time'] = lapTime;
                 storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
                 storage.teams[dataId]['pitstop'] = false;
-                storage.teams[dataId]['stint'] = stint;
+                storage.teams[dataId]['stint'] = convertToMiliSecondsFromHours(`${stint}`);
                 storage.teams[dataId].laps.push({
                     "lap_time": lapTime,
                     "converted_lap_time": lapTime,
@@ -108,6 +108,25 @@ function parseApexData(data) {
             }
         });
     }
+}
+
+/**
+ * 0:20
+ * 1:20
+ * @param time
+ */
+function convertToMiliSecondsFromHours(time) {
+    if (time.length < 2) {
+        return time;
+    }
+    let splittedMilisec = time.split(':');
+    if(splittedMilisec.length < 2) {
+        return time;
+    }
+    if(splittedMilisec[0] === '0') {
+        return parseInt(splittedMilisec[1]) * 60000;
+    }
+    return parseInt(splittedMilisec[0]) * 60 * 60000 + parseInt(splittedMilisec[1]) * 60000;
 }
 
 function convertToMiliSeconds(time) {
@@ -130,6 +149,20 @@ function convertToMiliSeconds(time) {
     }
 
     return convertedTime;
+}
+
+function convertToHours(origTime) {
+    let time = parseInt(origTime);
+    if (!time || time < 1) {
+        return origTime;
+    }
+    let minutes = parseInt(time / 60000);
+    let hours = parseInt(minutes / 60);
+    if(hours !== 0) {
+        minutes = minutes % 60;
+    }
+
+    return `${hours}:${parseInt(minutes ?? 0) < 10 ? '0' + minutes : minutes}`;
 }
 
 function convertToMinutes(origTime) {
@@ -220,11 +253,11 @@ function drawRating() {
         data += `
 <div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button name="${name}" onclick="deleteTeamLaps(this)">🗑</button><br />
-#${storage.teams[name].kart} ${storage.teams[name].teamName} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
+#${storage.teams[name].kart} ${storage.teams[name].teamName} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 3300000 ? '🚨' : ''}<br />
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
-Stint - ${this.convertToMinutes(storage.rating[name].stint)} </div>`;
+Stint - ${this.convertToHours(storage.rating[name].stint)} </div>`;
     }
 
     document.getElementById('rating').innerHTML = data;
