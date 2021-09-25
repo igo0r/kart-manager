@@ -27,10 +27,9 @@ function getData() {
 function trackQueue() {
     window.queueTask = window.setInterval(() => {
         if (!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
-            console.log("Open select kart form");
             showPitlaneForm(storage.queue[0]);
         }
-    }, 3000);
+    }, 2000);
 }
 
 function trackUpdates() {
@@ -92,7 +91,7 @@ function parseApexData(data) {
                 return;
             }
             if (lapTime === '' || (storage.teams[dataId]['last_lap_time'] && storage.teams[dataId]['last_lap_time'] === lapTime)) {
-                console.log('Same lap')
+               // console.log('Same lap')
             } else {
                 console.log(`#${storage.teams[dataId]['kart']} ${storage.teams[dataId]['teamName']} has new lap with time: ${lapTime}`);
                 storage.teams[dataId]['last_lap_time'] = lapTime;
