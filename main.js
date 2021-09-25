@@ -1,4 +1,5 @@
 initStorage('2g');
+trackUpdates();
 
 let url = '';
 switch (storage.track) {
@@ -37,6 +38,15 @@ webSocket.onmessage = function (event) {
     } else {
         parseData(JSON.parse(event.data))
     }
+}
+
+function trackUpdates() {
+    window.trackUpdatesTask = window.setInterval(() => {
+        if(window.lastUpdate && (new Date() - window.lastUpdate) > 60000) {
+            console.log("No data from from timing!");
+            showWarningToast("No data from from timing! Reload the page!");
+        }
+    },10000);
 }
 
 /*
@@ -161,6 +171,7 @@ function parseData(data) {
     // console.log(data);
     //console.log(storage);
     console.log('Response received');
+    window.lastUpdate = new Date();
     let adapter = getAdapter();
     let needToRecalculate = false;
     if (!data[adapter.data]) {
@@ -306,10 +317,10 @@ function getTimeToCompare(laps) {
     laps.sort((a, b) => a.lap_time - b.lap_time);
     let maxLength = laps.length > 5 ? 5 : laps.length;
     let avg = 0;
-    for (let i = 2; i < maxLength; i++) {
+    for (let i = 1; i < maxLength; i++) {
         avg += laps[i].lap_time;
     }
-    return parseInt(avg / (maxLength - 2));
+    return parseInt(avg / (maxLength - 1));
 }
 
 function printResult() {
@@ -409,15 +420,15 @@ function drawSettings() {
 function getBgColor(rating) {
     switch (rating) {
         case "rocket":
-            return "bg-info";
+            return "bg-info text-dark";
         case "good":
-            return "bg-success";
+            return "bg-success text-white";
         case "soso":
-            return "bg-warning";
+            return "bg-warning text-dark";
         case "sucks":
-            return "bg-danger";
+            return "bg-danger text-white";
         default:
-            return "bg-white"
+            return "bg-white text-dark"
     }
 }
 
@@ -468,6 +479,7 @@ function initStorage(track) {
         window.statistic = {};
     }
 
+    window.lastUpdate = new Date();
     window.storage.track = track;
     recalculateRating();
     recalculateChance();
@@ -701,6 +713,27 @@ function showToast(team) {
     toastElem.innerHTML = `<div class="d-flex">
                 <div class="toast-body">
                     <span id="toast-team-name">${team}</span> is in pit!
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>`;
+    toastContainer.append(toastElem);
+    toastElem.addEventListener('hidden.bs.toast', function () {
+        this.remove();
+    });
+    let toast = new bootstrap.Toast(toastElem);
+    toast.show();
+}
+
+function showWarningToast(text) {
+    let toastContainer = document.getElementById('toast-container');
+    let toastElem = document.createElement('div');
+    toastElem.setAttribute('class', `toast align-items-center ${getBgColor("sucks")}`);
+    toastElem.setAttribute('role', 'alert');
+    toastElem.setAttribute('aria-live', 'assertive');
+    toastElem.setAttribute('aria-atomic', 'true');
+    toastElem.innerHTML = `<div class="d-flex">
+                <div class="toast-body">
+                    ${text}
                 </div>
                 <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>`;
