@@ -35,8 +35,9 @@ function trackQueue() {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if (window.lastUpdate && (new Date() - window.lastUpdate) > 60000) {
-            console.log("No data from from timing!");
+        if (window.lastUpdate && (new Date() - window.lastUpdate) > 50000) {
+            console.log("No data from from timing! Reloading the page");
+            window.location.reload();
             showWarningToast("No data from from timing! Reload the page!");
         }
     }, 10000);
@@ -45,11 +46,10 @@ function trackUpdates() {
 function parseApexData(data) {
     //console.log(data);
     //console.log(storage);
-    console.log("Received data");
-    window.lastUpdate = new Date();
+  //  console.log("Received data");
     let items = data.split('\n');
     if (data.includes('init|')) {
-        console.log("Received init data");
+       // console.log("Received init data");
         let grid = items.filter(item => item.includes('grid|'));
         if (grid.length === 0) {
             console.log("Wrong init data");
@@ -59,6 +59,7 @@ function parseApexData(data) {
         let gridItems = grid[0].split('|');
         document.getElementById('apex-results').innerHTML = gridItems[2];
         let racers = document.querySelectorAll('tr:not(.head)');
+        window.lastUpdate = new Date();
         racers.forEach(racer => {
             let driverCellNumber = document.querySelector("td[data-type='dr']").getAttribute('data-id');
             let lastLapCellNumber = document.querySelector("td[data-type='llp']").getAttribute('data-id');
@@ -84,29 +85,28 @@ function parseApexData(data) {
 
             //pitstop
             if (isPit && isPit == 'si') {
-                console.log(`${teamName} is in PIT!!!!`);
                 !storage.teams[dataId]['pitstop'] ? pitStop(dataId) : '';
                 storage.teams[dataId]['pitstop'] = true;
-                console.log(`Set empty laps for ${teamName}`);
                 storage.teams[dataId].laps = [];
                 recalculateRating();
                 return;
             }
             if (lapTime === '' || (storage.teams[dataId]['last_lap_time'] && storage.teams[dataId]['last_lap_time'] === lapTime)) {
-                return;
+                console.log('Same lap')
+            } else {
+                console.log(`#${storage.teams[dataId]['kart']} ${storage.teams[dataId]['teamName']} has new lap with time: ${lapTime}`);
+                storage.teams[dataId]['last_lap_time'] = lapTime;
+                storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
+                storage.teams[dataId]['pitstop'] = false;
+                storage.teams[dataId]['stint'] = stint;
+                storage.teams[dataId].laps.push({
+                    "lap_time": lapTime,
+                    "converted_lap_time": lapTime,
+                    kart,
+                    position
+                });
+                recalculateRating();
             }
-            console.log(`${teamName} has new lap with time: ${lapTime}`);
-            storage.teams[dataId]['last_lap_time'] = lapTime;
-            storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
-            storage.teams[dataId]['pitstop'] = false;
-            storage.teams[dataId]['stint'] = stint;
-            storage.teams[dataId].laps.push({
-                "lap_time": lapTime,
-                "converted_lap_time": lapTime,
-                kart,
-                position
-            });
-            recalculateRating();
         });
     }
 }
@@ -218,7 +218,10 @@ function drawHTML() {
 function drawRating() {
     let data = '';
     for (let name in storage.rating) {
-        data += `<div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} ${storage.teams[name].teamName} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
+        data += `
+<div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
+<button name="${name}" onclick="deleteTeamLaps(this)">🗑</button><br />
+#${storage.teams[name].kart} ${storage.teams[name].teamName} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
@@ -231,11 +234,18 @@ Stint - ${this.convertToMinutes(storage.rating[name].stint)} </div>`;
 function drawLaps() {
     let data = '';
     for (let name in storage.teams) {
-        data += `<div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} - ${storage.teams[name].teamName}<br />
+        data += `<div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
+<button name="${name}" onclick="deleteTeamLaps(this)">🗑</button><br />
+#${storage.teams[name].kart} - ${storage.teams[name].teamName}<br />
 ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
     }
 
     document.getElementById('laps').innerHTML = data;
+}
+
+function deleteTeamLaps(item) {
+    storage.teams[item.name].laps = [];
+    recalculateRating();
 }
 
 function isPitlaneFormVisible() {
@@ -500,6 +510,8 @@ function setSoso(value) {
 
 function pitStop(name) {
     showToast(name);
+    console.log(`${storage.teams[name].teamName} is in PIT!!!!`);
+    console.log(`Set empty laps for ${storage.teams[name].teamName}`);
     storage.teams[name]['pitstop'] = true;
     storage.teams[name].laps = [];
     // addLapsToStatistics(name);
@@ -586,7 +598,7 @@ function showToast(team) {
     toastElem.setAttribute('aria-atomic', 'true');
     toastElem.innerHTML = `<div class="d-flex">
                 <div class="toast-body">
-                    <span id="toast-team-name">${team}</span> is in pit!
+                    <span id="toast-team-name">${storage.teams[team]['teamName']}</span> is in pit!
                 </div>
                 <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>`;
