@@ -64,10 +64,12 @@ function parseApexData(data) {
             let lastLapCellNumber = document.querySelector("td[data-type='llp']").getAttribute('data-id');
             let kartCellNumber = document.querySelector("td[data-type='no']").getAttribute('data-id');
             let rkCellNumber = document.querySelector("td[data-type='rk']").getAttribute('data-id');
+            let otrNumber = document.querySelector("td[data-type='otr']").getAttribute('data-id');
 
             let dataId = racer.getAttribute('data-id');
             let isPit = racer.querySelector(`td[data-id="${dataId}c1"]`).getAttribute('class');
             let teamName = racer.querySelector(`td[data-id="${dataId}${driverCellNumber}"]`).textContent;
+            let stint = racer.querySelector(`td[data-id="${dataId}${otrNumber}"]`).textContent;
             let kart = racer.querySelector(`div[data-id="${dataId}${kartCellNumber}"]`).textContent;
             let position = racer.querySelector(`p[data-id="${dataId}${rkCellNumber}"]`).textContent;
             let lapTime = convertToMiliSeconds(racer.querySelector(`td[data-id="${dataId}${lastLapCellNumber}"]`).textContent);
@@ -97,7 +99,7 @@ function parseApexData(data) {
             storage.teams[dataId]['last_lap_time'] = lapTime;
             storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
             storage.teams[dataId]['pitstop'] = false;
-            storage.teams[dataId]['stint'] = false ? 1 : 0;
+            storage.teams[dataId]['stint'] = stint;
             storage.teams[dataId].laps.push({
                 "lap_time": lapTime,
                 "converted_lap_time": lapTime,
