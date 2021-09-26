@@ -90,7 +90,10 @@ function parseApexData(data) {
                 recalculateRating();
                 return;
             }
-            if (lapTime === '' || (storage.teams[dataId]['last_lap_time'] && storage.teams[dataId]['last_lap_time'] === lapTime)) {
+            if (lapTime === ''
+                || (storage.teams[dataId]['last_lap_time'] && storage.teams[dataId]['last_lap_time'] === lapTime)
+                || parseInt(lapTime) > 120000
+            ) {
                // console.log('Same lap')
             } else {
                 console.log(`#${storage.teams[dataId]['kart']} ${storage.teams[dataId]['teamName']} has new lap with time: ${lapTime}`);
@@ -417,6 +420,7 @@ function showPitlaneKartData(item) {
     if(kart.avg && kart.rating) {
         document.getElementById('pitlane-form-kart-data').innerHTML = `
         ${kart.name && storage.teams[kart.name] && storage.teams[kart.name].kart ? '#' + storage.teams[kart.name].kart + ' ' + storage.teams[kart.name].teamName + '<br />' : ''}
+        ${kart.rating ? kart.rating + '<br />' : ''}
         Avg: ${convertToMinutes(kart.avg)}${kart.best ? '<br />Best: ' + convertToMinutes(kart.best) : ''}
         `;
     } else {
