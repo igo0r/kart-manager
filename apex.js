@@ -34,7 +34,7 @@ function trackQueue() {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if (window.lastUpdate && (new Date() - window.lastUpdate) > 30000) {
+        if (window.lastUpdate && (new Date() - window.lastUpdate) > 25000) {
             console.log("No data from from timing! Reloading the page");
             window.location.reload();
             showWarningToast("No data from from timing! Reload the page!");
@@ -269,6 +269,7 @@ function getPreviousHistoryForPitlane(data) {
     let html = "";
     if(data.rating) {
         html += `<br />History:<br />
+        ${data.name && storage.teams[data.name] && storage.teams[data.name].teamName ? '#' + storage.teams[data.name].kart + ' ' + storage.teams[data.name].teamName + '<br />' : ''}
         ${data.rating}<br />
         ${data.avg ? 'Avg: ' + convertToMinutes(data.avg) : ''}<br />
         ${data.best ? 'Best: ' + convertToMinutes(data.best) : ''}
@@ -283,7 +284,8 @@ function getPreviousHistory(name) {
     if(storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
         html += `<br />History:<br />
         ${storage.teams[name].previousHistory.rating}<br />
-        ${storage.teams[name].previousHistory.avg ? 'Avg: ' + convertToMinutes(storage.teams[name].previousHistory.avg) : ''}
+        ${storage.teams[name].previousHistory.avg ? 'Avg: ' + convertToMinutes(storage.teams[name].previousHistory.avg) : ''}<br />
+        ${storage.teams[name].previousHistory.best ? 'Best: ' + convertToMinutes(storage.teams[name].previousHistory.best) : ''}
         `;
     }
 
@@ -336,7 +338,9 @@ onclick="changeQueueOrder(this)" type="button">#${storage.teams[item.name].kart}
     html += '</div>';
     document.getElementById('select-row-body').innerHTML = html;
     window.showPitlaneChoice = new bootstrap.Modal(document.getElementById('choiceModal'));
-    window.showPitlaneChoice.show();
+    if(!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
+        window.showPitlaneChoice.show();
+    }
 }
 
 function changeQueueOrder(item) {
@@ -406,12 +410,17 @@ function showPitlaneKartData(item) {
 
     if(storage.pitlane[item.name[0]][item.name[1]].previousHistory && storage.pitlane[item.name[0]][item.name[1]].previousHistory.rating) {
         document.getElementById('pitlane-form-history').innerHTML = getPreviousHistoryForPitlane(storage.pitlane[item.name[0]][item.name[1]].previousHistory);
+    } else {
+        document.getElementById('pitlane-form-history').innerHTML = ''
     }
 
-    if(kart.avg) {
+    if(kart.avg && kart.rating) {
         document.getElementById('pitlane-form-kart-data').innerHTML = `
+        ${kart.name && storage.teams[kart.name] && storage.teams[kart.name].kart ? '#' + storage.teams[kart.name].kart + ' ' + storage.teams[kart.name].teamName + '<br />' : ''}
         Avg: ${convertToMinutes(kart.avg)}${kart.best ? '<br />Best: ' + convertToMinutes(kart.best) : ''}
         `;
+    } else {
+        document.getElementById('pitlane-form-kart-data').innerHTML = ''
     }
 
     window.showPitlaneKartForm = new bootstrap.Modal(document.getElementById('pitlane-kart-data'));
