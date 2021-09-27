@@ -29,7 +29,7 @@ function trackQueue() {
         if (!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
             showPitlaneForm(storage.queue[0]);
         }
-    }, 20000);
+    }, 2000);
 }
 
 function trackUpdates() {
@@ -491,11 +491,20 @@ function editTeamRating(item) {
                     
     <button name="${item.name}" class="mt-3 mb-3 p-2 btn btn-primary bg-dark text-white"
                             onclick="deleteTeamLaps(this)" type="button">Clear team laps</button>
+    
+    <button name="${item.name}" class="mt-3 mb-3 p-2 btn btn-primary bg-dark text-white"
+                            onclick="pitstopFromEditForm('${item.name}')" type="button">Pitstop</button>
     `;
 
     document.getElementById(`team-${storage.rating[teamId].rating}`).checked = true;
     window.showTeamEditForm = new bootstrap.Modal(document.getElementById('editTeamRating'));
     window.showTeamEditForm.show();
+}
+
+function pitstopFromEditForm(name) {
+    pitStop(name);
+    recalculateRating();
+    window.showTeamEditForm.hide();
 }
 
 function drawPitlane() {
@@ -663,6 +672,11 @@ function setSoso(value) {
 }
 
 function pitStop(name) {
+    if(!storage.teams[name]) {
+        alert(`Wrong team id ${name}`);
+        return;
+    }
+
     showToast(name);
     console.log(`${storage.teams[name].teamName} is in PIT!!!!`);
     console.log(`Set empty laps for ${storage.teams[name].teamName}`);
