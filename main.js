@@ -42,11 +42,12 @@ webSocket.onmessage = function (event) {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if(window.lastUpdate && (new Date() - window.lastUpdate) > 60000) {
+        if(window.lastUpdate && (new Date() - window.lastUpdate) > 30000) {
             console.log("No data from from timing!");
             showWarningToast("No data from from timing! Reload the page!");
+            window.location.reload();
         }
-    },10000);
+    },7000);
 }
 
 /*
@@ -191,6 +192,7 @@ function parseData(data) {
             console.log(`Set empty laps for ${item[adapter.teamName]}`);
             storage.teams[item[adapter.teamName]].laps = [];
             storage.teams[item[adapter.teamName]].stint = 0;
+            storage.teams[item[adapter.teamName]].customRating = false;
             needToRecalculate = true;
         } else if ((team.laps.length === 0 || team['last_lap'] !== item[adapter.lapNumber]) && (item[adapter.lapTime] > 0 && item[adapter.lapTime] < 125000)) {
             console.log(`${item[adapter.teamName]} has new lap ${item[adapter.lapNumber]} with time: ${item[adapter.lapTime]}`);
@@ -266,7 +268,8 @@ function addLapsForTeamIfNotExists(teamName) {
     //Check racer/team has some laps
     if (!storage.teams[teamName].laps || storage.teams[teamName].laps === undefined) {
         storage.teams[teamName].laps = [];
-        storage.teams[teamName]['last_lap'] = 0
+        storage.teams[teamName]['last_lap'] = 0;
+        storage.teams[teamName].customRating = false;
     }
 }
 
@@ -278,7 +281,12 @@ function addTeamIfNotExists(teamName) {
 
 function recalculateRating(drawSettings = true) {
     for (let name in storage.teams) {
-        storage.rating[name] = defineTeamRating(storage.teams[name]);
+        let rating = defineTeamRating(storage.teams[name]);
+        if (storage.teams[name].customRating) {
+            rating.rating = storage.rating[name] && storage.rating[name].rating ? storage.rating[name].rating : rating.rating;
+        }
+
+        storage.rating[name] = rating;
     }
 
     saveToLocalStorage();
@@ -344,11 +352,64 @@ function drawHTML(withSettings = true) {
     drawLaps();
 }
 
+function changeTeamRating(item) {
+    let teamName = document.getElementById('team-rating-modal').getAttribute('name');
+    if (!storage.teams[teamName] || !storage.rating[teamName]) {
+        alert(`Wrong team id: ${teamName}`);
+        return;
+    }
+
+    storage.rating[teamName].rating = item.value;
+    storage.teams[teamName].customRating = true;
+    recalculateRating();
+    window.showTeamEditForm.hide();
+}
+
+function editTeamRating(item) {
+    let teamId = item.name;
+    if (!storage.teams[teamId] || !storage.rating[teamId] || !storage.rating[teamId].rating) {
+        alert(`Wrong team name ${item.name} to edit or team does not have rating!`);
+        return;
+    }
+
+    document.getElementById('team-rating-modal').setAttribute('name', item.name);
+    document.getElementById('team-rating-title').innerText = `Change #${storage.teams[teamId].kart} ${teamId} data`;
+
+    document.getElementById('team-rating-body').innerHTML = `
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-rocket" value="rocket">
+        <label class="form-check-label bg-info text-dark" for="team-rocket">Rocket</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-good" value="good">
+        <label class="form-check-label bg-success text-white" for="team-good">Good</label>
+    </div>
+    <div class=" m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-soso" value="soso">
+        <label class="form-check-label bg-warning text-dark" for="team-soso">Soso</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-sucks" value="sucks">
+        <label class="form-check-label bg-danger text-white" for="team-sucks">Sucks</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-unknown" value="unknown">
+        <label class="form-check-label bg-white text-dark" for="team-unknown">Unknown</label>
+    </div>
+    `;
+
+    document.getElementById(`team-${storage.rating[teamId].rating}`).checked = true;
+    window.showTeamEditForm = new bootstrap.Modal(document.getElementById('editTeamRating'));
+    window.showTeamEditForm.show();
+}
 
 function drawRating() {
     let data = '';
     for (let name in storage.rating) {
-        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} ${name} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
+        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
+<button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button>
+<br />
+#${storage.teams[name].kart} ${name} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
@@ -361,7 +422,9 @@ Stint - ${this.convertToMinutes(storage.rating[name].stint)} </div>`;
 function drawLaps() {
     let data = '';
     for (let name in storage.teams) {
-        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">#${storage.teams[name].kart} - ${name}<br />
+        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
+<button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button><br />
+#${storage.teams[name].kart} - ${name}<br />
 ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
     }
 
@@ -530,6 +593,7 @@ function pitStop(name) {
     showToast(name);
     addLapsToStatistics(name);
     addToPitlane(name);
+    storage.teams[name].customRating = false;
     drawPitlane();
     recalculateChance();
 }

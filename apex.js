@@ -21,7 +21,7 @@ function getData() {
             window.myWebSocket.close();
             parseApexData(event.data);
         }
-    }, 5000);
+    }, 2000);
 }
 
 function trackQueue() {
@@ -29,26 +29,26 @@ function trackQueue() {
         if (!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
             showPitlaneForm(storage.queue[0]);
         }
-    }, 2000);
+    }, 1000);
 }
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if (window.lastUpdate && (new Date() - window.lastUpdate) > 25000) {
+        if (window.lastUpdate && (new Date() - window.lastUpdate) > 15000) {
             console.log("No data from from timing! Reloading the page");
             window.location.reload();
             showWarningToast("No data from from timing! Reload the page!");
         }
-    }, 10000);
+    }, 5000);
 }
 
 function parseApexData(data) {
     //console.log(data);
     //console.log(storage);
-  //  console.log("Received data");
+    //  console.log("Received data");
     let items = data.split('\n');
     if (data.includes('init|')) {
-       // console.log("Received init data");
+        // console.log("Received init data");
         let grid = items.filter(item => item.includes('grid|'));
         if (grid.length === 0) {
             console.log("Wrong init data");
@@ -86,6 +86,7 @@ function parseApexData(data) {
             if (isPit && isPit == 'si') {
                 !storage.teams[dataId]['pitstop'] ? pitStop(dataId) : '';
                 storage.teams[dataId]['pitstop'] = true;
+                storage.teams[dataId].customRating = false;
                 storage.teams[dataId].laps = [];
                 recalculateRating();
                 return;
@@ -123,10 +124,10 @@ function convertToMiliSecondsFromHours(time) {
         return time;
     }
     let splittedMilisec = time.split(':');
-    if(splittedMilisec.length < 2) {
+    if (splittedMilisec.length < 2) {
         return time;
     }
-    if(splittedMilisec[0] === '0') {
+    if (splittedMilisec[0] === '0') {
         return parseInt(splittedMilisec[1]) * 60000;
     }
     return parseInt(splittedMilisec[0]) * 60 * 60000 + parseInt(splittedMilisec[1]) * 60000;
@@ -161,7 +162,7 @@ function convertToHours(origTime) {
     }
     let minutes = parseInt(time / 60000);
     let hours = parseInt(minutes / 60);
-    if(hours !== 0) {
+    if (hours !== 0) {
         minutes = minutes % 60;
     }
 
@@ -184,6 +185,7 @@ function addLapsForTeamIfNotExists(teamName) {
     //Check racer/team has some laps
     if (!storage.teams[teamName].laps || storage.teams[teamName].laps === undefined) {
         storage.teams[teamName].laps = [];
+        storage.teams[teamName].customRating = false;
         storage.teams[teamName]['last_lap'] = 0
     }
 }
@@ -196,7 +198,12 @@ function addTeamIfNotExists(teamName) {
 
 function recalculateRating() {
     for (let name in storage.teams) {
-        storage.rating[name] = defineTeamRating(storage.teams[name]);
+        let rating = defineTeamRating(storage.teams[name]);
+        if (storage.teams[name].customRating) {
+            rating.rating = storage.rating[name] && storage.rating[name].rating ? storage.rating[name].rating : rating.rating;
+        }
+
+        storage.rating[name] = rating;
     }
 
     saveToLocalStorage();
@@ -249,13 +256,13 @@ function drawHTML() {
     drawPitlane();
 }
 
-
 function drawRating() {
     let data = '';
     for (let name in storage.rating) {
         data += `
 <div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
-<button name="${name}" onclick="deleteTeamLaps(this)">🗑</button><br />
+<button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button>
+<br />
 #${storage.teams[name].kart} ${storage.teams[name].teamName} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 3300000 ? '🚨' : ''}<br />
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
@@ -270,7 +277,7 @@ ${getPreviousHistory(name)}
 
 function getPreviousHistoryForPitlane(data) {
     let html = "";
-    if(data.rating) {
+    if (data.rating) {
         html += `<br />History:<br />
         ${data.name && storage.teams[data.name] && storage.teams[data.name].teamName ? '#' + storage.teams[data.name].kart + ' ' + storage.teams[data.name].teamName + '<br />' : ''}
         ${data.rating}<br />
@@ -284,7 +291,7 @@ function getPreviousHistoryForPitlane(data) {
 
 function getPreviousHistory(name) {
     let html = "";
-    if(storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
+    if (storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
         html += `<br />History:<br />
         ${storage.teams[name].previousHistory.rating}<br />
         ${storage.teams[name].previousHistory.avg ? 'Avg: ' + convertToMinutes(storage.teams[name].previousHistory.avg) : ''}<br />
@@ -299,7 +306,7 @@ function drawLaps() {
     let data = '';
     for (let name in storage.teams) {
         data += `<div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
-<button name="${name}" onclick="deleteTeamLaps(this)">🗑</button><br />
+<button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button><br />
 #${storage.teams[name].kart} - ${storage.teams[name].teamName}<br />
 ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
     }
@@ -309,7 +316,10 @@ ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).jo
 
 function deleteTeamLaps(item) {
     storage.teams[item.name].laps = [];
+    storage.teams[item.name].customRating = false;
     recalculateRating();
+
+    window.showTeamEditForm.hide();
 }
 
 function isPitlaneFormVisible() {
@@ -341,7 +351,7 @@ onclick="changeQueueOrder(this)" type="button">#${storage.teams[item.name].kart}
     html += '</div>';
     document.getElementById('select-row-body').innerHTML = html;
     window.showPitlaneChoice = new bootstrap.Modal(document.getElementById('choiceModal'));
-    if(!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
+    if (!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
         window.showPitlaneChoice.show();
     }
 }
@@ -362,16 +372,19 @@ function setPitlaneRowForPitstop(item) {
         if (item.name !== 'ignore') {
             storage.pitlane[item.name].push(storage.queue[0]);
             let kart = storage.pitlane[item.name].shift();
-            if(storage.queue[0].name) {
+            if (storage.queue[0].name) {
                 let teamId = storage.queue[0].name;
                 storage.teams[teamId].previousHistory = kart;
+                storage.teams[teamId].customRating = false;
             }
         }
         storage.queue.shift();
         saveToLocalStorage();
         drawPitlane();
-        drawRating();
+        recalculateRating();
         window.showPitlaneChoice.hide();
+    } else {
+        alert('Pitlane queue is empty already!');
     }
 }
 
@@ -401,8 +414,22 @@ function changeKartRating(item) {
     window.showPitlaneKartForm.hide();
 }
 
+function changeTeamRating(item) {
+    let teamName = document.getElementById('team-rating-modal').getAttribute('name');
+    if (!storage.teams[teamName] || !storage.rating[teamName]) {
+        alert(`Wrong team id: ${teamName}`);
+        return;
+    }
+
+    storage.rating[teamName].rating = item.value;
+    storage.teams[teamName].customRating = true;
+    recalculateRating();
+    window.showTeamEditForm.hide();
+}
+
 function showPitlaneKartData(item) {
     if (item.name.length < 2 || !storage.pitlane[item.name[0]] || !storage.pitlane[item.name[0]][item.name[1]]) {
+        alert(`Wrong name provided ${item.name}`);
         console.log(`Wrong name provided ${item.name}`);
         return;
     }
@@ -411,24 +438,73 @@ function showPitlaneKartData(item) {
     document.getElementById('kart-data-modal').setAttribute('name', item.name);
     document.getElementById(`kart-${kart.rating}`).checked = true;
 
-    if(storage.pitlane[item.name[0]][item.name[1]].previousHistory && storage.pitlane[item.name[0]][item.name[1]].previousHistory.rating) {
+    if (storage.pitlane[item.name[0]][item.name[1]].previousHistory && storage.pitlane[item.name[0]][item.name[1]].previousHistory.rating) {
         document.getElementById('pitlane-form-history').innerHTML = getPreviousHistoryForPitlane(storage.pitlane[item.name[0]][item.name[1]].previousHistory);
     } else {
         document.getElementById('pitlane-form-history').innerHTML = ''
     }
 
-    if(kart.avg && kart.rating) {
-        document.getElementById('pitlane-form-kart-data').innerHTML = `
-        ${kart.name && storage.teams[kart.name] && storage.teams[kart.name].kart ? '#' + storage.teams[kart.name].kart + ' ' + storage.teams[kart.name].teamName + '<br />' : ''}
-        ${kart.rating ? kart.rating + '<br />' : ''}
-        Avg: ${convertToMinutes(kart.avg)}${kart.best ? '<br />Best: ' + convertToMinutes(kart.best) : ''}
-        `;
-    } else {
-        document.getElementById('pitlane-form-kart-data').innerHTML = ''
+    let kartHtml = `
+${kart.name && storage.teams[kart.name] && storage.teams[kart.name].kart ? '#' + storage.teams[kart.name].kart + ' ' + storage.teams[kart.name].teamName + '<br />' : ''}
+${kart.rating ? kart.rating + '<br />' : ''}
+`;
+    if (kart.avg && kart.best) {
+        kartHtml += `Avg: ${convertToMinutes(kart.avg)}${kart.best ? '<br />Best: ' + convertToMinutes(kart.best) : ''}`;
     }
+    document.getElementById('pitlane-form-kart-data').innerHTML = kartHtml;
 
     window.showPitlaneKartForm = new bootstrap.Modal(document.getElementById('pitlane-kart-data'));
     window.showPitlaneKartForm.show();
+}
+
+function editTeamRating(item) {
+    let teamId = item.name;
+    if (!storage.teams[teamId] || !storage.rating[teamId] || !storage.rating[teamId].rating) {
+        alert(`Wrong team name ${item.name} to edit or team does not hve rating!`);
+        return;
+    }
+
+    document.getElementById('team-rating-modal').setAttribute('name', item.name);
+    document.getElementById('team-rating-title').innerText = `Change #${storage.teams[teamId].kart} ${storage.teams[teamId].teamName} data`;
+
+    document.getElementById('team-rating-body').innerHTML = `
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-rocket" value="rocket">
+        <label class="form-check-label bg-info text-dark" for="team-rocket">Rocket</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-good" value="good">
+        <label class="form-check-label bg-success text-white" for="team-good">Good</label>
+    </div>
+    <div class=" m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-soso" value="soso">
+        <label class="form-check-label bg-warning text-dark" for="team-soso">Soso</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-sucks" value="sucks">
+        <label class="form-check-label bg-danger text-white" for="team-sucks">Sucks</label>
+    </div>
+    <div class="m-2 col-3 col-md-2 form-check form-check-inline">
+        <input onclick="changeTeamRating(this);" class="form-check-input" type="radio" name="inlineRadioOptions" id="team-unknown" value="unknown">
+        <label class="form-check-label bg-white text-dark" for="team-unknown">Unknown</label>
+    </div>
+                    
+    <button name="${item.name}" class="mt-3 mb-3 p-2 btn btn-primary bg-dark text-white"
+                            onclick="deleteTeamLaps(this)" type="button">Clear team laps</button>
+    
+    <button name="${item.name}" class="mt-3 mb-3 p-2 btn btn-primary bg-dark text-white"
+                            onclick="pitstopFromEditForm('${item.name}')" type="button">Pitstop</button>
+    `;
+
+    document.getElementById(`team-${storage.rating[teamId].rating}`).checked = true;
+    window.showTeamEditForm = new bootstrap.Modal(document.getElementById('editTeamRating'));
+    window.showTeamEditForm.show();
+}
+
+function pitstopFromEditForm(name) {
+    pitStop(name);
+    recalculateRating();
+    window.showTeamEditForm.hide();
 }
 
 function drawPitlane() {
@@ -596,11 +672,17 @@ function setSoso(value) {
 }
 
 function pitStop(name) {
+    if(!storage.teams[name]) {
+        alert(`Wrong team id ${name}`);
+        return;
+    }
+
     showToast(name);
     console.log(`${storage.teams[name].teamName} is in PIT!!!!`);
     console.log(`Set empty laps for ${storage.teams[name].teamName}`);
     storage.teams[name]['pitstop'] = true;
     storage.teams[name].laps = [];
+    storage.teams[name].customRating = false;
     // addLapsToStatistics(name);
     addToPitlaneQueue(name);
 }
@@ -637,7 +719,7 @@ function getInitMessage() {
 function addToPitlaneQueue(name) {
     let rate = getTeamRating(name);
     rate.name = name;
-    if(storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
+    if (storage.teams[name].previousHistory && storage.teams[name].previousHistory.rating) {
         rate.previousHistory = storage.teams[name].previousHistory
     }
     console.log(`Add ${storage.teams[name].teamName ?? "unknown"} team to pitlane queue with ${rate.rating},${rate.best}, ${rate.avg}`);
