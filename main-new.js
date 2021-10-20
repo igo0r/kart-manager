@@ -341,22 +341,25 @@ ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).jo
 }
 
 function drawStatistics() {
+    let keysOrder = doSorting();
     let data = '';
-    for (let name in statistic) {
+    keysOrder.forEach(name => {
         data += `
 <div class="col border border-3">
 #${storage.teams[name].kart} - ${name}<br />`;
-        statistic[name].slice().reverse().forEach(stint => {
-            data += `
+        if(statistic[name]) {
+            statistic[name].slice().reverse().forEach(stint => {
+                data += `
 <div class="${getBgColor(stint.rating.rating)}">
 ${stint.driver ? stint.driver + '<br />' : ''}
 Best - ${this.convertToMinutes(stint.rating.best)}<br />
 Avg - ${this.convertToMinutes(stint.rating.avg)}
 </div>           
 `;
-        });
+            });
+        }
         data += `</div>`;
-    }
+    });
 
     document.getElementById('statistics').innerHTML = data;
 }
@@ -381,6 +384,7 @@ function drawPitlane() {
         data += `
 <div class="col border border-3 ${getBgColor(storage.pitlane[i].rating)}">
 #${storage.pitlane[i].kart ?? 0} ${storage.pitlane[i].name ?? 'unknown'}<br />
+${storage.pitlane[i].driver ?? 'unknown'}<br />
 Best - ${this.convertToMinutes(storage.pitlane[i].best)}<br />
 Avg - ${this.convertToMinutes(storage.pitlane[i].avg)}<br />
 </div>
@@ -496,6 +500,7 @@ function sortBy(value) {
     saveToLocalStorage();
     drawRating();
     drawLaps();
+    drawStatistics();
 }
 
 function setKartsInRow(index, value) {
@@ -691,6 +696,7 @@ function addToPitlane(name) {
     let rate = getTeamRating(name);
     rate.name = name;
     rate.kart = storage.teams[name].kart ?? 0;
+    rate.driver = storage.teams[name].driver ?? 'unknown';
     console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
     storage.pitlane.push(rate);
     storage.pitlane = cutPitlaneToTheSize(storage.pitlane);
