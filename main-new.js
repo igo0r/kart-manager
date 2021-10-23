@@ -60,6 +60,12 @@ function parseData(data) {
     if (!data[adapter.data]) {
         return;
     }
+
+    if (data["RaceState"] === "Finished" && storage.finish) {
+        return;
+    }
+    storage.finish = false;
+
     data[adapter.data].forEach(item => {
         //Check racer/team exists
         this.addTeamIfNotExists(item[adapter.teamName]);
@@ -96,14 +102,15 @@ function parseData(data) {
         recalculateRating(false);
     }
 
-    showFlag(storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0);
-    if (storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0) {
+    showFlag(data["RaceState"] === "Finished");
+    if (data["RaceState"] === "Finished") {
         console.log("===============HIT IS OVER!==================");
         this.printResult();
         !needToRecalculate ? recalculateRating(false) : '';
         for(let teamName in storage.teams) {
             addLapsToStatistics(teamName);
         }
+        storage.finish = true;
         storage.teams = {};
         storage.rating = {};
         storage.pitlane = fillInPitlaneWithUnknown();
