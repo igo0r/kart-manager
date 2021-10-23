@@ -339,7 +339,7 @@ function drawLaps() {
     keysOrder.forEach(name => {
         data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button><br />
-#${storage.teams[name].kart} - ${name}<br />
+#${storage.teams[name].kart} ${name}<br />
 ${storage.teams[name].driver && storage.teams[name].driver !== name ? storage.teams[name].driver + '<br />' : ''}
 ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
     });
@@ -353,7 +353,7 @@ function drawStatistics() {
     keysOrder.forEach(name => {
         data += `
 <div class="col border border-3">
-#${storage.teams[name].kart} - ${name}<br />`;
+#${storage.teams[name].kart} ${name}<br />`;
         if(statistic[name]) {
             statistic[name].slice().reverse().forEach(stint => {
                 data += `
