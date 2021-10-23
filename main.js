@@ -64,7 +64,16 @@ function parseData(data) {
     if (data["RaceState"] === "Finished" && storage.finish) {
         return;
     }
-    storage.finish = false;
+
+    if(storage.finish) {
+        storage.teams = {};
+        storage.rating = {};
+        storage.pitlane = fillInPitlaneWithUnknown();
+        storage.chance = [];
+        saveToLocalStorage();
+        drawHTML();
+        storage.finish = false;
+    }
 
     data[adapter.data].forEach(item => {
         //Check racer/team exists
@@ -111,11 +120,7 @@ function parseData(data) {
             addLapsToStatistics(teamName);
         }
         storage.finish = true;
-        storage.teams = {};
-        storage.rating = {};
-        storage.pitlane = fillInPitlaneWithUnknown();
-        storage.chance = [];
-        saveToLocalStorage();
+       drawStatistics();
     }
 }
 
