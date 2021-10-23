@@ -220,7 +220,7 @@ function getTimeToCompare(laps) {
     for (let i = 0; i < maxLength; i++) {
         avg += currentLaps[i].lap_time;
     }
-    return {avg: parseInt(avg / maxLength), best: currentLaps[0]};
+    return {avg: parseInt(avg / maxLength), best: currentLaps[0].lap_time};
 }
 
 function printResult() {
