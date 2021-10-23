@@ -358,7 +358,7 @@ function drawStatistics() {
     keysOrder.forEach(name => {
         data += `
 <div class="col border border-3">
-#${storage.teams[name].kart} ${name}<br />`;
+#${storage.teams[name].kart}<br />${name}<br />`;
         if(statistic[name]) {
             statistic[name].slice().reverse().forEach(stint => {
                 data += `
