@@ -70,9 +70,9 @@ function parseData(data) {
         storage.rating = {};
         storage.pitlane = fillInPitlaneWithUnknown();
         storage.chance = [];
+        storage.finish = false;
         saveToLocalStorage();
         drawHTML();
-        storage.finish = false;
     }
 
     data[adapter.data].forEach(item => {
