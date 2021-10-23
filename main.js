@@ -42,7 +42,7 @@ webSocket.onmessage = function (event) {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if(window.lastUpdate && (new Date() - window.lastUpdate) > 30000) {
+        if(window.lastUpdate && (new Date() - window.lastUpdate) > 300000) {
             console.log("No data from from timing!");
             showWarningToast("No data from from timing! Reload the page!");
             window.location.reload();
@@ -60,6 +60,12 @@ function parseData(data) {
     if (!data[adapter.data]) {
         return;
     }
+
+    if (data["RaceState"] === "Finished" && storage.finish) {
+        return;
+    }
+    storage.finish = false;
+
     data[adapter.data].forEach(item => {
         //Check racer/team exists
         this.addTeamIfNotExists(item[adapter.teamName]);
@@ -96,14 +102,15 @@ function parseData(data) {
         recalculateRating(false);
     }
 
-    showFlag(storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0);
-    if (storage.track === '2g' ? data["RaceState"] === "Finished" : data["C"] === 0) {
+    showFlag(data["RaceState"] === "Finished");
+    if (data["RaceState"] === "Finished") {
         console.log("===============HIT IS OVER!==================");
         this.printResult();
         !needToRecalculate ? recalculateRating(false) : '';
         for(let teamName in storage.teams) {
             addLapsToStatistics(teamName);
         }
+        storage.finish = true;
         storage.teams = {};
         storage.rating = {};
         storage.pitlane = fillInPitlaneWithUnknown();
@@ -177,16 +184,16 @@ function recalculateRating(drawSettings = true) {
 
 function defineTeamRating(val) {
     if (val.laps.length < 2) {
-        let lap = val.laps.length > 0 ? val.laps[0].lap_time : 0;
+        let lap = val.laps.length > 0 ? val.laps[0].lap_time : 99999;
         return {rating: "unknown", avg: lap, best: lap}
     }
     let time = getTimeToCompare(val.laps);
     let result = '';
-    if (time < storage.classes.rocket) {
+    if (time.avg < storage.classes.rocket) {
         result = 'rocket';
-    } else if (time < storage.classes.good) {
+    } else if (time.avg < storage.classes.good) {
         result = 'good';
-    } else if (time < storage.classes.soso) {
+    } else if (time.avg < storage.classes.soso) {
         result = 'soso'
     } else {
         result = 'sucks'
@@ -194,23 +201,26 @@ function defineTeamRating(val) {
 
     return {
         rating: result,
-        best: val.laps[0]['lap_time'],
-        avg: time,
+        best: time.best,
+        avg: time.avg,
         stint: val.stint ? val.stint : 0
     }
 }
 
 function getTimeToCompare(laps) {
     if (laps.length < 3) {
-        return laps[1].lap_time
+        return {avg: laps[1].lap_time, best: laps[1].lap_time}
     }
-    laps.sort((a, b) => a.lap_time - b.lap_time);
-    let maxLength = laps.length > 5 ? 5 : laps.length;
+    let currentLaps = [...laps];
+    currentLaps.shift();
+    currentLaps.sort((a, b) => a.lap_time - b.lap_time);
+    let howManyLaps = storage.settings.howManyLaps;
+    let maxLength = currentLaps.length > howManyLaps ? howManyLaps : currentLaps.length;
     let avg = 0;
-    for (let i = 1; i < maxLength; i++) {
-        avg += laps[i].lap_time;
+    for (let i = 0; i < maxLength; i++) {
+        avg += currentLaps[i].lap_time;
     }
-    return parseInt(avg / (maxLength - 1));
+    return {avg: parseInt(avg / maxLength), best: currentLaps[0]};
 }
 
 function printResult() {
@@ -231,6 +241,7 @@ function drawHTML(withSettings = true) {
     drawChance();
     drawRating();
     drawPitlane();
+    drawStatistics();
     drawLaps();
 }
 
@@ -285,34 +296,80 @@ function editTeamRating(item) {
     window.showTeamEditForm.show();
 }
 
+function doSorting() {
+    let keys = Object.keys(storage.rating);
+    switch (storage.settings.teamsSort) {
+        case 'max-stint':
+            keys.sort((a, b) => storage.teams[b].stint - storage.teams[a].stint);
+            break;
+        case 'min-avg':
+            keys.sort((a, b) => storage.rating[a].avg - storage.rating[b].avg);
+            break;
+        case 'number':
+            keys.sort((a, b) => storage.teams[a].kart - storage.teams[b].kart);
+            break;
+    }
+
+    return keys;
+}
 function drawRating() {
+    let keysOrder = doSorting();
     let data = '';
-    for (let name in storage.rating) {
+    keysOrder.forEach(name => {
         data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button>
 <br />
 #${storage.teams[name].kart} ${name} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
+${storage.teams[name].driver && storage.teams[name].driver !== name ? storage.teams[name].driver + '<br />' : ''}
 ${storage.rating[name].rating}  <br />
 Best - ${this.convertToMinutes(storage.rating[name].best)}<br />
 Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
-Stint - ${this.convertToMinutes(storage.rating[name].stint)} </div>`;
-    }
+Stint - ${this.convertToMinutes(storage.teams[name].stint ?? 0)} </div>`;
+    });
 
+    //}
+
+    document.getElementById('teams-sort').value = storage.settings.teamsSort;
     document.getElementById('rating').innerHTML = data;
 }
 
 function drawLaps() {
+    let keysOrder = doSorting();
     let data = '';
-    for (let name in storage.teams) {
+    keysOrder.forEach(name => {
         data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button><br />
 #${storage.teams[name].kart} - ${name}<br />
+${storage.teams[name].driver && storage.teams[name].driver !== name ? storage.teams[name].driver + '<br />' : ''}
 ${storage.teams[name].laps.map(lap => this.convertToMinutes(lap['lap_time'])).join('<br/>')}</div>`;
-    }
+    });
 
     document.getElementById('laps').innerHTML = data;
 }
 
+function drawStatistics() {
+    let keysOrder = doSorting();
+    let data = '';
+    keysOrder.forEach(name => {
+        data += `
+<div class="col border border-3">
+#${storage.teams[name].kart} - ${name}<br />`;
+        if(statistic[name]) {
+            statistic[name].slice().reverse().forEach(stint => {
+                data += `
+<div class="${getBgColor(stint.rating.rating)}">
+${stint.driver ? stint.driver + '<br />' : ''}
+Best - ${this.convertToMinutes(stint.rating.best)}<br />
+Avg - ${this.convertToMinutes(stint.rating.avg)}
+</div>           
+`;
+            });
+        }
+        data += `</div>`;
+    });
+
+    document.getElementById('statistics').innerHTML = data;
+}
 function drawChance() {
     let data = '<div class="row">';
     storage.chance.forEach(lane => {
@@ -331,7 +388,15 @@ function drawChance() {
 function drawPitlane() {
     let data = '';
     for(let i = storage.pitlane.length - 1; i >= 0; i-- ) {
-        data += `<div class="col border border-3 ${getBgColor(storage.pitlane[i].rating)}">${storage.pitlane[i].rating.substr(0,1)}</div>`;
+        data += `
+<div class="col border border-3 ${getBgColor(storage.pitlane[i].rating)}">
+#${storage.pitlane[i].kart ?? 0} ${storage.pitlane[i].name ?? 'unknown'}<br />
+${storage.pitlane[i].driver ?? 'unknown'}<br />
+Best - ${this.convertToMinutes(storage.pitlane[i].best)}<br />
+Avg - ${this.convertToMinutes(storage.pitlane[i].avg)}<br />
+</div>
+
+`;
     }
     /*storage.pitlane.forEach(lane => {
         data += `<div class="col-sm border border-3 ${getBgColor(lane.rating)}">${lane.rating}</div>`;
@@ -341,6 +406,9 @@ function drawPitlane() {
 }
 
 function drawSettings() {
+    document.getElementById('teams-sort').value = storage.settings.teamsSort ?? 'default';
+    document.getElementById('how-many-laps').value = storage.settings.howManyLaps;
+
     document.getElementById('rocket').value = storage.classes.rocket;
     document.getElementById('good').value = storage.classes.good;
     document.getElementById('soso').value = storage.classes.soso;
@@ -413,7 +481,7 @@ function initStorage(track) {
             rating: {},
             chance: [],
             classes: {rocket: 50000, good: 51000, soso: 51300, sucks: 53000},
-            settings: {rows: [2, 2, 2], rowsSum: 6}
+            settings: {rows: [2, 2, 2], rowsSum: 6, howManyLaps: 5, teamsSort: 'default'}
         };
         window.storage.pitlane = fillInPitlaneWithUnknown();
     }
@@ -434,6 +502,14 @@ function showFlag(show) {
     document.getElementById('finish').setAttribute('style', show ? '' : 'display: none;');
 }
 
+function sortBy(value) {
+    storage.settings.teamsSort = value;
+    saveToLocalStorage();
+    drawRating();
+    drawLaps();
+    drawStatistics();
+}
+
 function setKartsInRow(index, value) {
     storage.settings.rows[index] = parseInt(value);
     storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row);
@@ -451,6 +527,12 @@ function setRows(value) {
     drawSettings();
     saveToLocalStorage();
     recalculateChance();
+}
+
+function setHowManyLaps(value) {
+    storage.settings.howManyLaps = parseInt(value);
+    saveToLocalStorage();
+    recalculateRating();
 }
 
 function setRocket(value) {
@@ -488,6 +570,7 @@ function addLapsToStatistics(name) {
             {
                 driver: storage.teams[name].driver ?? 'noname',
                 stint: storage.teams[name].stint ?? 0,
+                rating: getTeamRating(name),
                 laps: storage.teams[name].laps
             }
         )
@@ -618,6 +701,9 @@ function cutPitlaneToTheSize(pitlane) {
 
 function addToPitlane(name) {
     let rate = getTeamRating(name);
+    rate.name = name;
+    rate.kart = storage.teams[name].kart ?? 0;
+    rate.driver = storage.teams[name].driver ?? 'unknown';
     console.log(`Add kart to pitlane with ${rate.rating},${rate.best}, ${rate.avg}`);
     storage.pitlane.push(rate);
     storage.pitlane = cutPitlaneToTheSize(storage.pitlane);
@@ -635,7 +721,7 @@ function getTeamRating(name) {
 function fillInPitlaneWithUnknown() {
     let pit = [];
     for (let i = 0; i < howManyKartsToKeep(); i++) {
-        pit.push({rating: 'unknown', best: 99999, avg: 99999});
+        pit.push({kart: '0', team: 'unknown', rating: 'unknown', best: 99999, avg: 99999});
     }
 
     return pit;

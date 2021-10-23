@@ -41,6 +41,13 @@
                     </div>
                 </div>
                 <div class="col-6 border">
+                    <h3>How many laps for avg</h3>
+                    <div class="input-group">
+                        <span class="input-group-text" id="how-many">How many laps</span>
+                        <input type="text" class="form-control" placeholder="how-many-laps" id="how-many-laps"
+                               aria-describedby="how-many"
+                               onchange="setHowManyLaps(this.value)">
+                    </div>
                     <h3>Lap time</h3>
                     <div class="input-group">
                         <span class="input-group-text" id="basic-addon1">Rocket <</span>
@@ -81,10 +88,25 @@
     <div id="chance" class="row"></div>
     <h1>Pitlane ➡︎</h1>
     <div id="pitlane" class="row row-cols-15"></div>
+    <br/>
     <h1>Rating</h1>
+    <div class="col-2">
+        <div>
+            <label>Sort by:</label>
+            <select class="" id="teams-sort" onchange="sortBy(this.value)">
+                <option value="default">Default</option>
+                <option value="max-stint">Max stint</option>
+                <option value="min-avg">Min avg</option>
+                <option value="number">Number</option>
+            </select>
+        </div>
+    </div>
+    <br/>
     <div id="rating" class="row"></div>
     <h1>All Laps</h1>
     <div id="laps" class="row"></div>
+    <h1>Statistics</h1>
+    <div id="statistics" class="row"></div>
     <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
 </div>
 <p>&nbsp;</p>
