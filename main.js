@@ -47,7 +47,7 @@ function trackUpdates() {
             showWarningToast("No data from from timing! Reload the page!");
             window.location.reload();
         }
-    },1000);
+    },3000);
 }
 
 function parseData(data) {
