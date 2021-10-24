@@ -42,12 +42,12 @@ webSocket.onmessage = function (event) {
 
 function trackUpdates() {
     window.trackUpdatesTask = window.setInterval(() => {
-        if(window.lastUpdate && (new Date() - window.lastUpdate) > 300000) {
+        if(window.lastUpdate && (new Date() - window.lastUpdate) > 4000) {
             console.log("No data from from timing!");
             showWarningToast("No data from from timing! Reload the page!");
             window.location.reload();
         }
-    },7000);
+    },1000);
 }
 
 function parseData(data) {
