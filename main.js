@@ -321,7 +321,7 @@ function drawRating() {
     let keysOrder = doSorting();
     let data = '';
     keysOrder.forEach(name => {
-        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
+        data += `<div class="col-2 border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button>
 <br />
 #${storage.teams[name].kart} ${name} ${storage.rating[name].stint && parseInt(storage.rating[name].stint) > 1800000 ? '🚨' : ''}<br />
@@ -342,7 +342,7 @@ function drawLaps() {
     let keysOrder = doSorting();
     let data = '';
     keysOrder.forEach(name => {
-        data += `<div class="col border border-3 ${getBgColor(storage.rating[name].rating)}">
+        data += `<div class="col-2 border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button><br />
 #${storage.teams[name].kart} ${name}<br />
 ${storage.teams[name].driver && storage.teams[name].driver !== name ? storage.teams[name].driver + '<br />' : ''}
@@ -357,7 +357,7 @@ function drawStatistics() {
     let data = '';
     keysOrder.forEach(name => {
         data += `
-<div class="col border border-3">
+<div class="col-2 border border-3">
 #${storage.teams[name].kart}<br />${name}<br />`;
         if(statistic[name]) {
             statistic[name].slice().reverse().forEach(stint => {
@@ -394,7 +394,7 @@ function drawPitlane() {
     let data = '';
     for(let i = storage.pitlane.length - 1; i >= 0; i-- ) {
         data += `
-<div class="col border border-3 ${getBgColor(storage.pitlane[i].rating)}">
+<div class="col-2 border border-3 ${getBgColor(storage.pitlane[i].rating)}">
 #${storage.pitlane[i].kart ?? 0} ${storage.pitlane[i].name ?? 'unknown'}<br />
 ${storage.pitlane[i].driver ?? 'unknown'}<br />
 Best - ${this.convertToMinutes(storage.pitlane[i].best)}<br />
