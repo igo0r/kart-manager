@@ -54,7 +54,6 @@ function parseData(data) {
     // console.log(data);
     //console.log(storage);
     console.log('Response received');
-    window.lastUpdate = new Date();
     let adapter = getAdapter();
     let needToRecalculate = false;
     if (!data[adapter.data]) {
@@ -74,6 +73,7 @@ function parseData(data) {
         saveToLocalStorage();
         drawHTML();
     }
+    window.lastUpdate = new Date();
 
     data[adapter.data].forEach(item => {
         //Check racer/team exists
