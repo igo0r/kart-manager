@@ -60,6 +60,7 @@ function parseData(data) {
         return;
     }
 
+    window.lastUpdate = new Date();
     if (data["RaceState"] === "Finished" && storage.finish) {
         return;
     }
@@ -73,7 +74,6 @@ function parseData(data) {
         saveToLocalStorage();
         drawHTML();
     }
-    window.lastUpdate = new Date();
 
     data[adapter.data].forEach(item => {
         //Check racer/team exists
