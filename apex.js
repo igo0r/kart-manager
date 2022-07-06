@@ -1,6 +1,9 @@
 //url = 'wss://www.apex-timing.com:8072/';
 //let url = 'ws://www.apex-timing.com:7822/';
-let url = 'ws://www.apex-timing.com:8912/';
+//bulgaria
+//let url = 'ws://www.apex-timing.com:8912/';
+//rkc
+let url = 'ws://www.apex-timing.com:7820/';
 //Url for php request +2!
 // url = 'http://www.apex-timing.com/live-timing/pista-azzurra/liveajax.php?init=0&index=0&port=7824'
 
@@ -95,7 +98,7 @@ function parseApexData(data) {
                 || (storage.teams[dataId]['last_lap_time'] && storage.teams[dataId]['last_lap_time'] === lapTime)
                 || parseInt(lapTime) > 120000
             ) {
-               // console.log('Same lap')
+                // console.log('Same lap')
             } else {
                 console.log(`#${storage.teams[dataId]['kart']} ${storage.teams[dataId]['teamName']} has new lap with time: ${lapTime}`);
                 storage.teams[dataId]['last_lap_time'] = lapTime;
@@ -214,7 +217,7 @@ function recalculateRating() {
 function defineTeamRating(val) {
     if (val.laps.length < 2) {
         let lap = val.laps.length > 0 ? val.laps[0].lap_time : 0;
-        return {rating: "unknown", avg: lap, best: lap}
+        return { rating: "unknown", avg: lap, best: lap }
     }
     let time = getTimeToCompare(val.laps);
     let result = '';
@@ -534,7 +537,7 @@ function drawSettings() {
     document.getElementById('soso').value = storage.classes.soso;
 
     for (let i = 0; i < storage.settings.rows.length; i++) {
-        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : { count: 0, color: '#FFFFFF' };
     }
     document.getElementById('rows-count').value = storage.settings.rows.length;
     document.getElementById('rows-with-karts').innerHTML = '';
@@ -601,9 +604,9 @@ function initStorage(track) {
         window.storage = {
             teams: {},
             rating: {},
-            classes: {rocket: 52800, good: 53300, soso: 53800, sucks: 54200},
+            classes: { rocket: 52800, good: 53300, soso: 53800, sucks: 54200 },
             settings: {
-                rows: [{count: 3, color: '#FFFFFF'}, {count: 3, color: '#FFFFFF'}, {
+                rows: [{ count: 3, color: '#FFFFFF' }, { count: 3, color: '#FFFFFF' }, {
                     count: 3,
                     color: '#FFFFFF'
                 }]
@@ -645,7 +648,7 @@ function setRows(value) {
     storage.settings.rows = storage.settings.rows ? storage.settings.rows : [];
     storage.settings.rows.length = parseInt(value);
     for (let i = 0; i < value; i++) {
-        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : { count: 0, color: '#FFFFFF' };
     }
     drawSettings();
     saveToLocalStorage();
@@ -672,7 +675,7 @@ function setSoso(value) {
 }
 
 function pitStop(name) {
-    if(!storage.teams[name]) {
+    if (!storage.teams[name]) {
         alert(`Wrong team id ${name}`);
         return;
     }
@@ -742,11 +745,11 @@ function fillInPitlaneWithUnknown(rewrite = true) {
         let rowItems = [];
         for (let i = 0; i < row.count; i++) {
             if (rewrite) {
-                rowItems.push({rating: "unknown"})
+                rowItems.push({ rating: "unknown" })
             } else {
                 let itemToPush = storage.pitlane && storage.pitlane[index] && storage.pitlane[index][i]
                     ? storage.pitlane[index][i]
-                    : {rating: "unknown"};
+                    : { rating: "unknown" };
                 rowItems.push(itemToPush);
             }
 
