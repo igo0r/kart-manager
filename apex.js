@@ -555,7 +555,6 @@ function drawSettings() {
     }
 
     saveToLocalStorage();
-    drawPitlane();
 }
 
 function getBgColor(rating) {
