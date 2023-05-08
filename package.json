@@ -9,7 +9,8 @@
     "parse": "node index.js",
     "manager-api": "node ./server/index.js",
     "2g-listener": "node ./server/2glistener.js",
-    "start": "./node_modules/http-server/bin/http-server"
+    "start": "./node_modules/http-server/bin/http-server",
+    "deploy": "gh-pages -d ./"
   },
   "babel": {
     "presets": [
@@ -41,6 +42,7 @@
     "ws": "^7.5.0"
   },
   "devDependencies": {
+    "gh-pages": "^5.0.0",
     "jest": "^27.0.6"
   }
 }
