@@ -10,7 +10,7 @@
     "manager-api": "node ./server/index.js",
     "2g-listener": "node ./server/2glistener.js",
     "start": "./node_modules/http-server/bin/http-server",
-    "deploy": "gh-pages -d ./"
+    "deploy": "gh-pages -d ./ -b master"
   },
   "babel": {
     "presets": [
