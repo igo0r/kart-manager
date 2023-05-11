@@ -3,7 +3,9 @@
 //bulgaria
 //let url = 'ws://www.apex-timing.com:8912/';
 //rkc
-let url = 'ws://www.apex-timing.com:7822/';
+//let url = 'ws://www.apex-timing.com:7822/';
+//slovakia
+let url = 'ws://www.apex-timing.com:8532/';
 //Url for php request +2!
 // url = 'http://www.apex-timing.com/live-timing/pista-azzurra/liveajax.php?init=0&index=0&port=7824'
 
