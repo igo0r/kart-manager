@@ -881,7 +881,10 @@ function fillInPitlaneWithUnknown(rewrite = true) {
     let pit = [];
     if (storage.settings.isRandomPitlane) {
         for (let i = 0; i < howManyKartsToKeep(); i++) {
-            pit.push({rating: "unknown"});
+            let itemToPush = storage.pitlane && storage.pitlane[i]
+                ? storage.pitlane[i]
+                : {rating: "unknown"};
+            pit.push(itemToPush);
         }
     } else {
         storage.settings.rows.forEach((row, index) => {
