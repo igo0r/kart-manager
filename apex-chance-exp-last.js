@@ -43,7 +43,7 @@ function updateRatingLapTimeFrames() {
         if (storage.settings.countAutomatic && storage.rating && Object.keys(storage.rating).length > 0) {
             recalculateRatingTimeFrames()
         }
-    }, 1000);
+    }, 120000);
 }
 
 function trackUpdates() {
