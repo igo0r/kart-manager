@@ -13,6 +13,7 @@ trackUpdates();
 trackQueue();
 getData();
 initStorage('apex');
+updateRatingLapTimeFrames()
 
 function getData() {
     window.getDataTask = window.setInterval(() => {
@@ -33,6 +34,14 @@ function trackQueue() {
     window.queueTask = window.setInterval(() => {
         if (!isPitlaneFormVisible() && storage.queue && storage.queue.length > 0) {
             showPitlaneForm(storage.queue[0]);
+        }
+    }, 1000);
+}
+
+function updateRatingLapTimeFrames() {
+    window.queueTask = window.setInterval(() => {
+        if (storage.settings.countAutomatic && storage.rating && Object.keys(storage.rating).length > 0) {
+            recalculateRatingTimeFrames()
         }
     }, 1000);
 }
@@ -293,7 +302,7 @@ function recalculateRating() {
 function defineTeamRating(val) {
     if (val.laps.length < 2) {
         let lap = val.laps.length > 0 ? val.laps[0].lap_time : 0;
-        return {rating: "unknown", avg: lap, best: lap}
+        return { rating: "unknown", avg: lap, best: lap }
     }
     let time = getTimeToCompare(val.laps);
     let result = '';
@@ -653,6 +662,7 @@ class="w-25 btn-lg m-3 p-8 btn btn-primary ${getBgColor(line.rating)}" type="but
 }
 
 function drawSettings() {
+    setCountAutomatic(storage.settings.countAutomatic ?? false);
     document.getElementById('random-pitlane').checked = storage.settings.isRandomPitlane;
     document.getElementById('rocket').value = storage.classes.rocket;
     document.getElementById('good').value = storage.classes.good;
@@ -729,6 +739,7 @@ function initStorage(track) {
             chance: [],
             classes: {rocket: 52800, good: 53300, soso: 53800, sucks: 54200},
             settings: {
+                countAutomatic: false,
                 isRandomPitlane: false,
                 rowsSum: 9,
                 rows: [{count: 3, color: '#FFFFFF'}, {count: 3, color: '#FFFFFF'}, {
@@ -761,6 +772,41 @@ function setColorInRow(index, value) {
     saveToLocalStorage();
     drawSettings();
     drawPitlane();
+}
+
+function recalculateRatingTimeFrames() {
+    let ratings = Object.values(storage.rating);
+    ratings = ratings.filter(team => team.rating !== 'unknown')
+    ratings = ratings.filter(team => team.avg && team.avg > 0)
+    if(ratings.length < 10) {
+        return;
+    }
+    const sortedRating = ratings.sort((a, b) => a.avg - b.avg);
+    const totalTeams = sortedRating.length;
+    const quarter = Math.floor(totalTeams / 4);
+    setRocket(sortedRating[quarter].avg);
+    setGood(sortedRating[quarter*2].avg);
+    setSoso(sortedRating[quarter*3].avg);
+    document.getElementById('rocket').value = storage.classes.rocket;
+    document.getElementById('good').value = storage.classes.good;
+    document.getElementById('soso').value = storage.classes.soso;
+    console.log("NEW RATING:", sortedRating[quarter].avg, sortedRating[quarter*2].avg, sortedRating[quarter*3].avg)
+}
+
+function setCountAutomatic(isAutomatic) {
+    storage.settings.countAutomatic = isAutomatic;
+    if(isAutomatic) {
+        document.getElementById('count-automatic').checked = true;
+        document.getElementById('rocket').setAttribute('disabled', isAutomatic);
+        document.getElementById('good').setAttribute('disabled', isAutomatic);
+        document.getElementById('soso').setAttribute('disabled', isAutomatic);
+    } else {
+        document.getElementById('count-automatic').checked = false;
+        document.getElementById('rocket').removeAttribute('disabled');
+        document.getElementById('good').removeAttribute('disabled');
+        document.getElementById('soso').removeAttribute('disabled');
+    }
+    saveToLocalStorage();
 }
 
 function setRandomPitlane(isRandomPitlane) {
