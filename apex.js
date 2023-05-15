@@ -13,6 +13,7 @@ trackUpdates();
 trackQueue();
 getData();
 initStorage('apex');
+updateRatingLapTimeFrames()
 
 function getData() {
     window.getDataTask = window.setInterval(() => {
@@ -35,6 +36,14 @@ function trackQueue() {
             showPitlaneForm(storage.queue[0]);
         }
     }, 1000);
+}
+
+function updateRatingLapTimeFrames() {
+    window.queueTask = window.setInterval(() => {
+        if (storage.settings.countAutomatic && storage.rating && Object.keys(storage.rating).length > 0) {
+            recalculateRatingTimeFrames()
+        }
+    }, 120000);
 }
 
 function trackUpdates() {
@@ -201,6 +210,80 @@ function addTeamIfNotExists(teamName) {
     }
 }
 
+function recalculateChance() {
+    if (!storage.settings?.isRandomPitlane) {
+        return;
+    }
+    let pitlane = [...storage.pitlane];
+    let firstPit = composeChance(pitlane);
+    pitlane.push({rating: "unknown"});
+    pitlane = cutPitlaneToTheSize(pitlane);
+    let secondPit = composeChance(pitlane);
+    pitlane.push({rating: "unknown"});
+    pitlane = cutPitlaneToTheSize(pitlane);
+    storage.chance = [firstPit, secondPit, composeChance(pitlane)];
+
+    saveToLocalStorage();
+    drawChance();
+}
+
+function composeChance(pitlane) {
+    let result = composeVariants(pitlane);
+    console.log(result);
+    return {
+        rocket: result.rocket ? (100 * result.rocket / result.all).toFixed(2) : 0,
+        good: result.good ? (100 * result.good / result.all).toFixed(2) : 0,
+        soso: result.soso ? (100 * result.soso / result.all).toFixed(2) : 0,
+        sucks: result.sucks ? (100 * result.sucks / result.all).toFixed(2) : 0,
+        unknown: result.unknown ? (100 * result.unknown / result.all).toFixed(2) : 0,
+    };
+}
+
+function composeVariants(pitlane, result = {}) {
+    if (pitlane.length > storage.settings.rowsSum) {
+        let startIndex = 0;
+        storage.settings.rows.forEach(row => {
+            if (row.count < 1) {
+                return;
+            }
+            let tmpPitlane = [...pitlane];
+            let a = tmpPitlane[storage.settings.rowsSum];
+            tmpPitlane.splice(storage.settings.rowsSum, 1);
+            tmpPitlane.splice(startIndex, 1);
+            startIndex += row.count;
+            tmpPitlane.splice(startIndex - 1, 0, a);
+            composeVariants(tmpPitlane, result)
+        })
+    }
+    if (pitlane.length === storage.settings.rowsSum) {
+        let startIndex = 0;
+        storage.settings.rows.forEach(row => {
+            if (row.count < 1) {
+                return;
+            }
+            let type = pitlane[startIndex].rating;
+            result[type] = result[type] ? result[type] + 1 : 1;
+            result.all = result.all ? result.all + 1 : 1;
+            startIndex += row.count;
+        })
+    }
+
+    return result;
+}
+
+function cutPitlaneToTheSize(pitlane) {
+    while (pitlane.length > howManyKartsToKeep()) {
+        pitlane.splice(0, 1);
+    }
+
+    return pitlane;
+}
+
+//No sense to take into account more than count + 2 karts for a row + count. In case 2 rows and 3 in a row = 13
+function howManyKartsToKeep() {
+    return 15;
+}
+
 function recalculateRating() {
     for (let name in storage.teams) {
         let rating = defineTeamRating(storage.teams[name]);
@@ -259,11 +342,13 @@ function drawHTML() {
     drawRating();
     drawLaps();
     drawPitlane();
+    drawChance();
 }
 
 function drawRating() {
+    let keysOrder = doSorting();
     let data = '';
-    for (let name in storage.rating) {
+    keysOrder.forEach(name => {
         data += `
 <div class="col-3 col-sm-3 col-md-2 col-lg-1 border border-3 ${getBgColor(storage.rating[name].rating)}">
 <button class="ms-1" name="${name}" onclick="editTeamRating(this)">✏️</button>
@@ -275,8 +360,9 @@ Avg - ${this.convertToMinutes(storage.rating[name].avg)}<br />
 Stint - ${this.convertToHours(storage.rating[name].stint)} 
 ${getPreviousHistory(name)}
 </div>`;
-    }
+    });
 
+    document.getElementById('teams-sort').value = storage.settings.teamsSort;
     document.getElementById('rating').innerHTML = data;
 }
 
@@ -335,6 +421,11 @@ function isPitlaneFormVisible() {
  * Team - {name - teamId, rating - rocket, sucks..., avg - avg lap, best - best lap}
  */
 function showPitlaneForm(team) {
+    if (storage.settings?.isRandomPitlane) {
+        setPitlaneRowForPitstop({name: 0});
+        recalculateChance();
+        return;
+    }
     document.getElementById('select-row-title').innerHTML = `
     Select row for the <span class="${getBgColor(team.rating)}">#${storage.teams[team.name].kart} ${storage.teams[team.name].teamName}</span>`;
     let html = '<div class="row">';
@@ -374,7 +465,10 @@ function changeQueueOrder(item) {
 
 function setPitlaneRowForPitstop(item) {
     if (storage.queue && storage.queue.length > 0) {
-        if (item.name !== 'ignore') {
+        if (storage.settings.isRandomPitlane) {
+            storage.pitlane.push(storage.queue[0]);
+            storage.pitlane = cutPitlaneToTheSize(storage.pitlane);
+        } else if (item.name !== 'ignore') {
             storage.pitlane[item.name].push(storage.queue[0]);
             let kart = storage.pitlane[item.name].shift();
             if (storage.queue[0].name) {
@@ -387,7 +481,7 @@ function setPitlaneRowForPitstop(item) {
         saveToLocalStorage();
         drawPitlane();
         recalculateRating();
-        window.showPitlaneChoice.hide();
+        window.showPitlaneChoice ? window.showPitlaneChoice.hide() : '';
     } else {
         alert('Pitlane queue is empty already!');
     }
@@ -417,6 +511,30 @@ function changeKartRating(item) {
     saveToLocalStorage();
     drawPitlane();
     window.showPitlaneKartForm.hide();
+}
+
+function doSorting() {
+    let keys = Object.keys(storage.rating);
+    switch (storage.settings.teamsSort) {
+        case 'max-stint':
+            keys.sort((a, b) => storage.teams[b].stint - storage.teams[a].stint);
+            break;
+        case 'min-avg':
+            keys.sort((a, b) => storage.rating[a].avg - storage.rating[b].avg);
+            break;
+        case 'number':
+            keys.sort((a, b) => storage.teams[a].kart - storage.teams[b].kart);
+            break;
+    }
+
+    return keys;
+}
+
+function sortBy(value) {
+    storage.settings.teamsSort = value;
+    saveToLocalStorage();
+    drawRating();
+    drawLaps();
 }
 
 function changeTeamRating(item) {
@@ -512,35 +630,74 @@ function pitstopFromEditForm(name) {
     window.showTeamEditForm.hide();
 }
 
+function drawChance() {
+    if(!storage.settings.isRandomPitlane) {
+        document.getElementById('chance').setAttribute('class', 'row d-none');
+        document.getElementById('chance-title').setAttribute('class', 'd-none');
+        return;
+    }
+    let data = '<div class="row">';
+    storage.chance.forEach(lane => {
+        data += `<div class="col border border-3 ${getBgColor("rocket")}">Rocket - ${lane.rocket} %</div>
+<div class="col border border-3 ${getBgColor("good")}">Good - ${lane.good} %</div>
+<div class="col border border-3 ${getBgColor("soso")}">So-so - ${lane.soso} %</div>
+<div class="col border border-3 ${getBgColor("sucks")}">Sucks - ${lane.sucks} %</div>
+<div class="col border border-3 ${getBgColor("unknown")}">Unknown - ${lane.unknown} %</div>
+</div><div class="row">`;
+    });
+    data += '</div>';
+
+    document.getElementById('chance').innerHTML = data;
+    document.getElementById('chance').setAttribute('class', 'row');
+    document.getElementById('chance-title').setAttribute('class', '');
+}
+
 function drawPitlane() {
     let data = '';
-    let maxLength = 0;
-    storage.pitlane.forEach(row => {
-        maxLength = row.length > maxLength ? row.length : maxLength;
-    });
-    storage.pitlane.forEach((row, index) => {
-        data += '<div class="col-12 d-flex align-items-center justify-content-center">';
-        data += `<input class="h-50 w-25" type="color" disabled value="${storage.settings.rows[index].color}">`;
-        row.forEach((line, lineIndex) => {
-            data += `<button name="${index}${lineIndex}" onclick="showPitlaneKartData(this)"
-class="w-25 btn-lg m-3 p-8 btn btn-primary ${getBgColor(line.rating)}" type="button">${lineIndex + 1}</button>`;
-        });
-        for (let i = 0; i < maxLength - row.length; i++) {
-            data += `<div class="w-25 m-3 p-8"></div>`
+    if (storage.settings.isRandomPitlane) {
+        for (let i = storage.pitlane.length - 1; i >= 0; i--) {
+            data += `
+<div class="col-2 border border-3 ${getBgColor(storage.pitlane[i].rating)}">
+#${storage.pitlane[i].kart ?? 0} ${storage.pitlane[i].name ?? 'unknown'}<br />
+${storage.pitlane[i].driver ?? 'unknown'}<br />
+Best - ${this.convertToMinutes(storage.pitlane[i].best)}<br />
+Avg - ${this.convertToMinutes(storage.pitlane[i].avg)}<br />
+</div>
+`;
         }
-        data += '</div>';
-    });
+    } else {
+        let maxLength = 0;
+        storage.pitlane.forEach(row => {
+            maxLength = row.length > maxLength ? row.length : maxLength;
+        });
+        storage.pitlane.forEach((row, index) => {
+            data += '<div class="col-12 d-flex align-items-center justify-content-center">';
+            data += `<input class="h-50 w-25" type="color" disabled value="${storage.settings.rows[index].color}">`;
+            row.forEach((line, lineIndex) => {
+                data += `<button name="${index}${lineIndex}" onclick="showPitlaneKartData(this)"
+class="w-25 btn-lg m-3 p-8 btn btn-primary ${getBgColor(line.rating)}" type="button">${lineIndex + 1}</button>`;
+            });
+            for (let i = 0; i < maxLength - row.length; i++) {
+                data += `<div class="w-25 m-3 p-8"></div>`
+            }
+            data += '</div>';
+        });
+    }
     document.getElementById('pitlane').innerHTML = data;
 }
 
 function drawSettings() {
+    document.getElementById('teams-sort').value = storage.settings.teamsSort ?? 'default';
+    setCountAutomatic(storage.settings.countAutomatic ?? false);
+    document.getElementById('random-pitlane').checked = storage.settings.isRandomPitlane;
     document.getElementById('rocket').value = storage.classes.rocket;
     document.getElementById('good').value = storage.classes.good;
     document.getElementById('soso').value = storage.classes.soso;
 
     for (let i = 0; i < storage.settings.rows.length; i++) {
-        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : { count: 0, color: '#FFFFFF' };
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
     }
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
     document.getElementById('rows-count').value = storage.settings.rows.length;
     document.getElementById('rows-with-karts').innerHTML = '';
     let data = '';
@@ -605,9 +762,14 @@ function initStorage(track) {
         window.storage = {
             teams: {},
             rating: {},
-            classes: { rocket: 52800, good: 53300, soso: 53800, sucks: 54200 },
+            chance: [],
+            classes: {rocket: 52800, good: 53300, soso: 53800, sucks: 54200},
             settings: {
-                rows: [{ count: 3, color: '#FFFFFF' }, { count: 3, color: '#FFFFFF' }, {
+                teamsSort: 'default',
+                countAutomatic: false,
+                isRandomPitlane: false,
+                rowsSum: 9,
+                rows: [{count: 3, color: '#FFFFFF'}, {count: 3, color: '#FFFFFF'}, {
                     count: 3,
                     color: '#FFFFFF'
                 }]
@@ -625,7 +787,9 @@ function initStorage(track) {
 
     window.storage.track = track;
     window.lastUpdate = new Date();
+    recalculateRating();
     drawHTML();
+    recalculateChance();
     saveToLocalStorage();
     saveToLocalStorage('statistic');
 }
@@ -637,24 +801,70 @@ function setColorInRow(index, value) {
     drawPitlane();
 }
 
+function recalculateRatingTimeFrames() {
+    let ratings = Object.values(storage.rating);
+    ratings = ratings.filter(team => team.rating !== 'unknown')
+    ratings = ratings.filter(team => team.avg && team.avg > 0)
+    if(ratings.length < 10) {
+        return;
+    }
+    const sortedRating = ratings.sort((a, b) => a.avg - b.avg);
+    const totalTeams = sortedRating.length;
+    const quarter = Math.floor(totalTeams / 4);
+    setRocket(sortedRating[quarter].avg);
+    setGood(sortedRating[quarter*2].avg);
+    setSoso(sortedRating[quarter*3].avg);
+    document.getElementById('rocket').value = storage.classes.rocket;
+    document.getElementById('good').value = storage.classes.good;
+    document.getElementById('soso').value = storage.classes.soso;
+    console.log("NEW RATING:", sortedRating[quarter].avg, sortedRating[quarter*2].avg, sortedRating[quarter*3].avg)
+}
+
+function setCountAutomatic(isAutomatic) {
+    storage.settings.countAutomatic = isAutomatic;
+    if(isAutomatic) {
+        document.getElementById('count-automatic').checked = true;
+        document.getElementById('rocket').setAttribute('disabled', isAutomatic);
+        document.getElementById('good').setAttribute('disabled', isAutomatic);
+        document.getElementById('soso').setAttribute('disabled', isAutomatic);
+    } else {
+        document.getElementById('count-automatic').checked = false;
+        document.getElementById('rocket').removeAttribute('disabled');
+        document.getElementById('good').removeAttribute('disabled');
+        document.getElementById('soso').removeAttribute('disabled');
+    }
+    saveToLocalStorage();
+}
+
+function setRandomPitlane(isRandomPitlane) {
+    storage.settings.isRandomPitlane = isRandomPitlane;
+    setRows(isRandomPitlane ? 1 : 3);
+    drawSettings();
+    saveToLocalStorage();
+}
+
 function setKartsInRow(index, value) {
     storage.settings.rows[index].count = parseInt(value);
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
     drawSettings();
     saveToLocalStorage();
     fillInPitlaneWithUnknown(false);
     drawPitlane();
+    recalculateChance();
 }
 
 function setRows(value) {
     storage.settings.rows = storage.settings.rows ? storage.settings.rows : [];
     storage.settings.rows.length = parseInt(value);
     for (let i = 0; i < value; i++) {
-        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : { count: 0, color: '#FFFFFF' };
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
     }
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
+    fillInPitlaneWithUnknown(false);
     drawSettings();
     saveToLocalStorage();
-    fillInPitlaneWithUnknown(false);
     drawPitlane();
+    recalculateChance();
 }
 
 function setRocket(value) {
@@ -742,21 +952,30 @@ function getTeamRating(name) {
 
 function fillInPitlaneWithUnknown(rewrite = true) {
     let pit = [];
-    storage.settings.rows.forEach((row, index) => {
-        let rowItems = [];
-        for (let i = 0; i < row.count; i++) {
-            if (rewrite) {
-                rowItems.push({ rating: "unknown" })
-            } else {
-                let itemToPush = storage.pitlane && storage.pitlane[index] && storage.pitlane[index][i]
-                    ? storage.pitlane[index][i]
-                    : { rating: "unknown" };
-                rowItems.push(itemToPush);
-            }
-
+    if (storage.settings.isRandomPitlane) {
+        for (let i = 0; i < howManyKartsToKeep(); i++) {
+            let itemToPush = storage.pitlane && storage.pitlane[i]
+                ? storage.pitlane[i]
+                : {rating: "unknown"};
+            pit.push(itemToPush);
         }
-        pit.push(rowItems);
-    });
+    } else {
+        storage.settings.rows.forEach((row, index) => {
+            let rowItems = [];
+            for (let i = 0; i < row.count; i++) {
+                if (rewrite) {
+                    rowItems.push({rating: "unknown"})
+                } else {
+                    let itemToPush = storage.pitlane && storage.pitlane[index] && storage.pitlane[index][i]
+                        ? storage.pitlane[index][i]
+                        : {rating: "unknown"};
+                    rowItems.push(itemToPush);
+                }
+
+            }
+            pit.push(rowItems);
+        });
+    }
 
     window.storage.pitlane = pit;
     saveToLocalStorage();

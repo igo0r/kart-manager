@@ -29,6 +29,9 @@
             <div id="collapseOne" class="row accordion-collapse collapse show" aria-labelledby="headingOne"
                  data-bs-parent="#accordionExample">
                 <div class="col border">
+                    <h3>Pitstop lane</h3>
+                    <input class="form-check-input" onclick="setRandomPitlane(this.checked)" type="checkbox" id="random-pitlane" name="random-pitlane" value="Random">
+                    <label class="form-check-label" for="random-pitlane">Random pitstop?</label><br>
                     <h3>Pitlane rows</h3>
                     <div class="input-group">
                         <span class="input-group-text">How many rows?</span>
@@ -42,6 +45,8 @@
                 </div>
                 <div class="col-6 border">
                     <h3>Lap time</h3>
+                    <input class="form-check-input" onclick="setCountAutomatic(this.checked)" type="checkbox" id="count-automatic" name="count-automatic" value="Auto">
+                    <label class="form-check-label" for="count-automatic">Count automatically?</label><br>
                     <div class="input-group">
                         <span class="input-group-text" id="basic-addon1">Rocket <</span>
                         <input type="text" class="form-control" placeholder="rocket" id="rocket"
@@ -127,10 +132,24 @@
             </div>
         </div>
     </div>
+    <h1 id="chance-title" class="d-none">Pitlane chance</h1>
+    <div id="chance" class="row d-none"></div>
     <h1>Pitlane ⇽</h1>
     <!--<div id="pitlane" class="row row-cols-15"></div>-->
     <div id="pitlane" class="row"></div>
     <h1>Rating</h1>
+    <div class="col-2">
+        <div>
+            <label>Sort by:</label>
+            <select class="" id="teams-sort" onchange="sortBy(this.value)">
+                <option value="default">Default</option>
+                <option value="max-stint">Max stint</option>
+                <option value="min-avg">Min avg</option>
+                <option value="number">Number</option>
+            </select>
+        </div>
+    </div>
+    <br/>
     <div id="rating" class="row"></div>
     <h1>All Laps</h1>
     <div id="laps" class="row"></div>
