@@ -32,15 +32,17 @@
                     <h3>Pitstop lane</h3>
                     <input class="form-check-input" onclick="setRandomPitlane(this.checked)" type="checkbox" id="random-pitlane" name="random-pitlane" value="Random">
                     <label class="form-check-label" for="random-pitlane">Random pitstop?</label><br>
-                    <h3>Pitlane rows</h3>
-                    <div class="input-group">
-                        <span class="input-group-text">How many rows?</span>
-                        <input type="text" class="form-control" placeholder="rows count" id="rows-count"
-                               aria-describedby="basic-addon5"
-                               onchange="setRows(this.value)">
-                    </div>
-                    <br/>
-                    <div class="input-group" id="rows-with-karts">
+                    <div class="pitlane-rows" id="pitlane-rows">
+                        <h3>Pitlane rows</h3>
+                        <div class="input-group">
+                            <span class="input-group-text">How many rows?</span>
+                            <input type="text" class="form-control" placeholder="rows count" id="rows-count"
+                                   aria-describedby="basic-addon5"
+                                   onchange="setRows(this.value)">
+                        </div>
+                        <br/>
+                        <div class="input-group" id="rows-with-karts">
+                        </div>
                     </div>
                 </div>
                 <div class="col-6 border">

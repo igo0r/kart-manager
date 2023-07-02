@@ -5,7 +5,9 @@
 //rkc
 //let url = 'ws://www.apex-timing.com:7822/';
 //slovakia
-let url = 'ws://www.apex-timing.com:8532/';
+//let url = 'ws://www.apex-timing.com:8532/';
+//pista sens inverse
+let url = 'ws://www.apex-timing.com:8202/';
 //Url for php request +2!
 // url = 'http://www.apex-timing.com/live-timing/pista-azzurra/liveajax.php?init=0&index=0&port=7824'
 
@@ -40,7 +42,7 @@ function trackQueue() {
 
 function updateRatingLapTimeFrames() {
     window.queueTask = window.setInterval(() => {
-        if (storage.settings.countAutomatic && storage.rating && Object.keys(storage.rating).length > 0) {
+        if (storage.settings.countAutomatic && storage.rating && Object.keys(storage.rating).length > 5) {
             recalculateRatingTimeFrames()
         }
     }, 120000);
@@ -102,6 +104,7 @@ function parseApexData(data) {
                 storage.teams[dataId]['pitstop'] = true;
                 storage.teams[dataId].customRating = false;
                 storage.teams[dataId].laps = [];
+                storage.teams[dataId]['stint'] = 0;
                 recalculateRating();
                 return;
             }
@@ -115,7 +118,7 @@ function parseApexData(data) {
                 storage.teams[dataId]['last_lap_time'] = lapTime;
                 storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
                 storage.teams[dataId]['pitstop'] = false;
-                storage.teams[dataId]['stint'] = convertToMiliSecondsFromHours(`${stint}`);
+                storage.teams[dataId]['stint'] = stint.includes('.') ? 0 : convertToMiliSecondsFromHours(`${stint}`);
                 storage.teams[dataId].laps.push({
                     "lap_time": lapTime,
                     "converted_lap_time": lapTime,
@@ -212,9 +215,10 @@ function addTeamIfNotExists(teamName) {
 
 function recalculateChance() {
     if (!storage.settings?.isRandomPitlane) {
+        drawChance();
         return;
     }
-    let pitlane = [...storage.pitlane];
+    let pitlane = [...storage.pitlaneForRandomChance];
     let firstPit = composeChance(pitlane);
     pitlane.push({rating: "unknown"});
     pitlane = cutPitlaneToTheSize(pitlane);
@@ -229,7 +233,6 @@ function recalculateChance() {
 
 function composeChance(pitlane) {
     let result = composeVariants(pitlane);
-    console.log(result);
     return {
         rocket: result.rocket ? (100 * result.rocket / result.all).toFixed(2) : 0,
         good: result.good ? (100 * result.good / result.all).toFixed(2) : 0,
@@ -301,16 +304,17 @@ function recalculateRating() {
 
 function defineTeamRating(val) {
     if (val.laps.length < 2) {
-        let lap = val.laps.length > 0 ? val.laps[0].lap_time : 0;
-        return { rating: "unknown", avg: lap, best: lap }
+        return { rating: "unknown", avg: 999999, best: 999999, stint: val.stint ?? 0 }
+    } else if (val.laps.length === 2) {
+        return { rating: "unknown", avg: val.laps[1].lap_time, best: val.laps[1].lap_time, stint: val.stint ?? 0 }
     }
-    let time = getTimeToCompare(val.laps);
+    let [avg, best] = getTimeToCompare([...val.laps]);
     let result = '';
-    if (time < storage.classes.rocket) {
+    if (avg < storage.classes.rocket) {
         result = 'rocket';
-    } else if (time < storage.classes.good) {
+    } else if (avg < storage.classes.good) {
         result = 'good';
-    } else if (time < storage.classes.soso) {
+    } else if (avg < storage.classes.soso) {
         result = 'soso'
     } else {
         result = 'sucks'
@@ -318,23 +322,21 @@ function defineTeamRating(val) {
 
     return {
         rating: result,
-        best: val.laps[0]['lap_time'],
-        avg: time,
+        best: best,
+        avg: avg,
         stint: val.stint ? val.stint : 0
     }
 }
 
 function getTimeToCompare(laps) {
-    if (laps.length < 3) {
-        return laps[1].lap_time
-    }
+    laps.shift()
     laps.sort((a, b) => a.lap_time - b.lap_time);
     let maxLength = laps.length > 5 ? 5 : laps.length;
     let avg = 0;
-    for (let i = 1; i < maxLength; i++) {
+    for (let i = 0; i < maxLength; i++) {
         avg += laps[i].lap_time;
     }
-    return parseInt(avg / (maxLength - 1));
+    return [parseInt(avg / (maxLength)), laps[0].lap_time];
 }
 
 function drawHTML() {
@@ -466,8 +468,8 @@ function changeQueueOrder(item) {
 function setPitlaneRowForPitstop(item) {
     if (storage.queue && storage.queue.length > 0) {
         if (storage.settings.isRandomPitlane) {
-            storage.pitlane.push(storage.queue[0]);
-            storage.pitlane = cutPitlaneToTheSize(storage.pitlane);
+            storage.pitlaneForRandomChance.push(storage.queue[0]);
+            storage.pitlaneForRandomChance = cutPitlaneToTheSize(storage.pitlaneForRandomChance);
         } else if (item.name !== 'ignore') {
             storage.pitlane[item.name].push(storage.queue[0]);
             let kart = storage.pitlane[item.name].shift();
@@ -495,8 +497,10 @@ function removeKartFromPitlane() {
     }
     storage.pitlane[kartIndex[0]].splice(kartIndex[1], 1);
     storage.settings.rows[kartIndex[0]].count = storage.pitlane[kartIndex[0]].length;
+    recalculateRowsSum();
     saveToLocalStorage();
     drawPitlane();
+    drawChance();
     drawSettings();
     window.showPitlaneKartForm.hide();
 }
@@ -655,13 +659,13 @@ function drawChance() {
 function drawPitlane() {
     let data = '';
     if (storage.settings.isRandomPitlane) {
-        for (let i = storage.pitlane.length - 1; i >= 0; i--) {
+        for (let i = storage.pitlaneForRandomChance.length - 1; i >= 0; i--) {
+            let kartData = storage.pitlaneForRandomChance[i];
             data += `
-<div class="col-2 border border-3 ${getBgColor(storage.pitlane[i].rating)}">
-#${storage.pitlane[i].kart ?? 0} ${storage.pitlane[i].name ?? 'unknown'}<br />
-${storage.pitlane[i].driver ?? 'unknown'}<br />
-Best - ${this.convertToMinutes(storage.pitlane[i].best)}<br />
-Avg - ${this.convertToMinutes(storage.pitlane[i].avg)}<br />
+<div class="col-2 border border-3 ${getBgColor(storage.pitlaneForRandomChance[i].rating)}">
+#${kartData.name ? storage.teams[storage.pitlaneForRandomChance[i].name].kart ?? 0 : 0} ${kartData.name ? storage.teams[storage.pitlaneForRandomChance[i].name].teamName ?? 'unknown' : 'unknown'}<br />
+Best - ${this.convertToMinutes(storage.pitlaneForRandomChance[i].best)}<br />
+Avg - ${this.convertToMinutes(storage.pitlaneForRandomChance[i].avg)}<br />
 </div>
 `;
         }
@@ -697,7 +701,7 @@ function drawSettings() {
     for (let i = 0; i < storage.settings.rows.length; i++) {
         storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
     }
-    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
+    recalculateRowsSum();
     document.getElementById('rows-count').value = storage.settings.rows.length;
     document.getElementById('rows-with-karts').innerHTML = '';
     let data = '';
@@ -713,6 +717,11 @@ function drawSettings() {
         document.getElementById('rows-with-karts').classList.add('row');
     }
 
+    saveToLocalStorage();
+}
+
+function recalculateRowsSum() {
+    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
     saveToLocalStorage();
 }
 
@@ -810,14 +819,14 @@ function recalculateRatingTimeFrames() {
     }
     const sortedRating = ratings.sort((a, b) => a.avg - b.avg);
     const totalTeams = sortedRating.length;
-    const quarter = Math.floor(totalTeams / 4);
-    setRocket(sortedRating[quarter].avg);
-    setGood(sortedRating[quarter*2].avg);
-    setSoso(sortedRating[quarter*3].avg);
+    const index = Math.floor(totalTeams / 5);
+    setRocket(sortedRating[index].avg);
+    setGood(sortedRating[index*2].avg);
+    setSoso(sortedRating[index*3].avg);
     document.getElementById('rocket').value = storage.classes.rocket;
     document.getElementById('good').value = storage.classes.good;
     document.getElementById('soso').value = storage.classes.soso;
-    console.log("NEW RATING:", sortedRating[quarter].avg, sortedRating[quarter*2].avg, sortedRating[quarter*3].avg)
+    console.log("NEW RATING:", sortedRating[index].avg, sortedRating[index*2].avg, sortedRating[index*3].avg)
 }
 
 function setCountAutomatic(isAutomatic) {
@@ -838,14 +847,15 @@ function setCountAutomatic(isAutomatic) {
 
 function setRandomPitlane(isRandomPitlane) {
     storage.settings.isRandomPitlane = isRandomPitlane;
-    setRows(isRandomPitlane ? 1 : 3);
-    drawSettings();
+    fillInPitlaneWithUnknown();
+    recalculateChance();
+    drawPitlane();
     saveToLocalStorage();
 }
 
 function setKartsInRow(index, value) {
     storage.settings.rows[index].count = parseInt(value);
-    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
+    recalculateRowsSum();
     drawSettings();
     saveToLocalStorage();
     fillInPitlaneWithUnknown(false);
@@ -857,9 +867,9 @@ function setRows(value) {
     storage.settings.rows = storage.settings.rows ? storage.settings.rows : [];
     storage.settings.rows.length = parseInt(value);
     for (let i = 0; i < value; i++) {
-        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 0, color: '#FFFFFF'};
+        storage.settings.rows[i] = storage.settings.rows[i] ? storage.settings.rows[i] : {count: 3, color: '#FFFFFF'};
     }
-    storage.settings.rowsSum = storage.settings.rows.reduce((sum, row) => sum + row.count, 0);
+    recalculateRowsSum();
     fillInPitlaneWithUnknown(false);
     drawSettings();
     saveToLocalStorage();
@@ -945,39 +955,43 @@ function getTeamRating(name) {
     return storage.rating && storage.rating[name] ? storage.rating[name] : {
         kart: 'unknown',
         rating: 'unknown',
-        best: 0,
-        avg: 0
+        best: 999999,
+        avg: 999999
     };
 }
 
 function fillInPitlaneWithUnknown(rewrite = true) {
     let pit = [];
-    if (storage.settings.isRandomPitlane) {
-        for (let i = 0; i < howManyKartsToKeep(); i++) {
-            let itemToPush = storage.pitlane && storage.pitlane[i]
-                ? storage.pitlane[i]
+    let pitlaneForRandomChance = [];
+    for (let i = 0; i < howManyKartsToKeep(); i++) {
+        if (rewrite) {
+            pitlaneForRandomChance.push({rating: "unknown"});
+        } else {
+            let itemToPush = storage.pitlaneForRandomChance && storage.pitlaneForRandomChance[i]
+                ? storage.pitlaneForRandomChance[i]
                 : {rating: "unknown"};
-            pit.push(itemToPush);
+            pitlaneForRandomChance.push(itemToPush);
         }
-    } else {
-        storage.settings.rows.forEach((row, index) => {
-            let rowItems = [];
-            for (let i = 0; i < row.count; i++) {
-                if (rewrite) {
-                    rowItems.push({rating: "unknown"})
-                } else {
-                    let itemToPush = storage.pitlane && storage.pitlane[index] && storage.pitlane[index][i]
-                        ? storage.pitlane[index][i]
-                        : {rating: "unknown"};
-                    rowItems.push(itemToPush);
-                }
-
-            }
-            pit.push(rowItems);
-        });
     }
 
+    storage.settings.rows.forEach((row, index) => {
+        let rowItems = [];
+        for (let i = 0; i < row.count; i++) {
+            if (rewrite) {
+                rowItems.push({rating: "unknown"})
+            } else {
+                let itemToPush = storage.pitlane && storage.pitlane[index] && storage.pitlane[index][i]
+                    ? storage.pitlane[index][i]
+                    : {rating: "unknown"};
+                rowItems.push(itemToPush);
+            }
+
+        }
+        pit.push(rowItems);
+    });
+
     window.storage.pitlane = pit;
+    window.storage.pitlaneForRandomChance = pitlaneForRandomChance;
     saveToLocalStorage();
 }
 
