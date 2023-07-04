@@ -118,7 +118,7 @@ function parseApexData(data) {
                 storage.teams[dataId]['last_lap_time'] = lapTime;
                 storage.teams[dataId]['last_lap_time_minutes'] = this.convertToMinutes(lapTime);
                 storage.teams[dataId]['pitstop'] = false;
-                storage.teams[dataId]['stint'] = stint.includes('.') ? 0 : convertToMiliSecondsFromHours(`${stint}`);
+                storage.teams[dataId]['stint'] = stint === 0 || stint.includes('.') ? 0 : convertToMiliSecondsFromHours(`${stint}`);
                 storage.teams[dataId].laps.push({
                     "lap_time": lapTime,
                     "converted_lap_time": lapTime,
