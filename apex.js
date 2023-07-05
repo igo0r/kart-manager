@@ -3,9 +3,9 @@
 //bulgaria
 //let url = 'ws://www.apex-timing.com:8912/';
 //rkc
-//let url = 'ws://www.apex-timing.com:7822/';
+let url = 'ws://www.apex-timing.com:7822/';
 //slovakia
-let url = 'ws://www.apex-timing.com:8532/';
+//let url = 'ws://www.apex-timing.com:8532/';
 //pista sens inverse
 //let url = 'ws://www.apex-timing.com:8202/';
 //Url for php request +2!
